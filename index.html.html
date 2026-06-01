@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ツクペイ</title>
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode"></script>
+<style>
+/* 🎨 カラー設定 */
+:root {
+  --bg: #FFF9E6; 
+  --bg-dot: #FFE8A1;
+  --bg2: #FFFFFF;
+  --bg3: #F9FAFB;
+  --border: #333333; 
+  --border2: #E5E7EB;
+  --text: #333333;
+  --text2: #666666;
+  --danger: #FF6B6B;
+  --warn: #FFC107;
+  --r: 20px;
+  --font-display: 'M PLUS Rounded 1c', sans-serif;
+  --font-body: 'M PLUS Rounded 1c', sans-serif;
+  --money-primary: #FFCC00;
+  --money-glow: rgba(255, 204, 0, 0.4);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{
+  font-family:var(--font-body);background-color:var(--bg);
+  background-image: radial-gradient(var(--bg-dot) 4px, transparent 4px);
+  background-size: 24px 24px;color:var(--text);
+  min-height:100vh;max-width:480px;margin:0 auto;position:relative;overflow-x:hidden;
+}
+
+/* 📱 共通パーツ */
+.header{ background:var(--bg2);border-bottom:3px solid var(--border);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100; }
+.header-left { display:flex;align-items:center;gap:12px; }
+.btn-back { background:none;border:none;font-size:24px;font-weight:900;color:var(--text);cursor:pointer; }
+.logo{ font-family:var(--font-display);font-size:18px;font-weight:900;display:flex;align-items:center;gap:8px; }
+.logo-icon{ width:36px;height:36px;background:var(--money-primary);border:3px solid var(--border);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow: 0 3px 0 var(--border); }
+.role-badge{ font-size:11px;padding:6px 12px;border-radius:20px;font-weight:900;border:3px solid var(--border); }
+.role-badge.owner{background:var(--warn);color:#333;}
+.role-badge.user{background:#4DD0E1;color:#333;}
+
+/* 🔽 ナビゲーションメニュー */
+.nav{ background:var(--bg2);border-bottom:3px solid var(--border);display:flex;position:sticky;top:67px;z-index:99; }
+.nav-btn{ flex:1;padding:12px 2px;border:none;background:none;border-right:3px solid var(--border);font-family:var(--font-body);font-size:10px;font-weight:800;color:var(--text2);cursor:pointer;transition:all 0.2s;display:flex;flex-direction:column;align-items:center;gap:4px; }
+.nav-btn:last-child{border-right:none;}
+.nav-btn .nicon{font-size:18px;}
+.nav-btn.active{background:var(--money-primary);color:var(--text);}
+.page{display:none;padding:20px 16px 100px;position:relative;z-index:1;}
+.page.active{display:block;}
+
+/* 🗂 カードとボタン */
+.card{ background:var(--bg2);border:3px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:16px;box-shadow: 0 6px 0 var(--border);position:relative;overflow:hidden; }
+.balance-card{ background:var(--money-primary);border:3px solid var(--border);border-radius:24px;padding:24px 22px 20px;margin-bottom:20px;box-shadow: 0 8px 0 var(--border);position:relative;overflow:hidden;text-align:center; }
+.balance-card::after{ content:'';position:absolute;top:-20px;right:-20px;width:100px;height:100px;background:rgba(255,255,255,0.2);border-radius:50%;pointer-events:none; }
+.bal-label{font-size:12px;font-weight:900;color:var(--text);margin-bottom:6px;}
+.bal-name{font-size:15px;color:var(--text);margin-bottom:12px;font-weight:800;background:rgba(255,255,255,0.4);display:inline-block;padding:4px 12px;border-radius:12px;border:2px solid var(--border);}
+.bal-amount{ font-family:var(--font-display);font-size:52px;color:var(--text);line-height:1;font-weight:900;display:flex;align-items:baseline;justify-content:center;gap:8px;text-shadow: 2px 2px 0 #fff, -2px -2px 0 #fff, 2px -2px 0 #fff, -2px 2px 0 #fff; }
+.bal-unit{font-size:18px;font-weight:800;}
+
+.stitle{ font-size:15px;font-weight:900;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:8px; }
+.stitle::before{content:'✨';font-size:16px;}
+.fgroup{margin-bottom:16px;}
+label{display:block;font-size:13px;font-weight:900;margin-bottom:8px;}
+input,select,textarea{ width:100%;padding:14px;border:3px solid var(--border);border-radius:14px;font-family:var(--font-body);font-size:16px;font-weight:700;color:var(--text);background:#fff;transition:all 0.2s;-webkit-appearance:none; }
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--money-primary);box-shadow:0 0 0 4px var(--money-glow);}
+
+.btn-primary{ width:100%;padding:16px;background:var(--money-primary);color:var(--text);font-family:var(--font-body);font-size:16px;font-weight:900;border:3px solid var(--border);border-radius:20px;cursor:pointer;transition:all 0.1s;box-shadow:0 6px 0 var(--border);margin-bottom:6px; }
+.btn-primary:active{transform:translateY(6px);box-shadow:0 0 0 transparent;}
+.btn-outline{ width:100%;padding:14px;border:3px solid var(--border);border-radius:20px;background:#fff;color:var(--text);font-family:var(--font-body);font-size:15px;font-weight:900;cursor:pointer;transition:all 0.1s;box-shadow:0 4px 0 var(--border);margin-bottom:4px; }
+.btn-outline:active{transform:translateY(4px);box-shadow:0 0 0 transparent;}
+.btn-danger{background:var(--danger);color:#fff;}
+
+/* 💸 履歴リスト */
+.txn-list{display:flex;flex-direction:column;gap:10px;}
+.txn-item{ background:#fff;border:3px solid var(--border);border-radius:16px;padding:14px;display:flex;align-items:center;gap:12px; }
+.txn-icon{ width:44px;height:44px;border-radius:12px;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0; }
+.txn-icon.recv{background:#E8F5E9;} .txn-icon.send{background:#FFEBEE;} .txn-icon.confiscate{background:#FFF8E1;}
+.txn-body{flex:1;min-width:0;}
+.txn-reason{font-size:14px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.txn-meta{font-size:11px;font-weight:700;color:var(--text2);margin-top:4px;}
+.txn-amount{font-family:var(--font-display);font-size:18px;font-weight:900;flex-shrink:0;}
+
+/* 📊 ランクとチップ */
+.rank-item{ background:#fff;border:3px solid var(--border);border-radius:16px;padding:14px 16px;display:flex;align-items:center;gap:12px;margin-bottom:10px; }
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
+.chip{ padding:10px 16px;border:3px solid var(--border);border-radius:20px;font-size:14px;font-weight:800;cursor:pointer;transition:all 0.1s;background:#fff;box-shadow:0 3px 0 var(--border);margin-bottom:3px; }
+.chip:active{transform:translateY(3px);box-shadow:0 0 0 transparent;}
+.chip.sel{background:var(--money-primary);box-shadow:0 0 0 transparent;transform:translateY(3px);}
+
+/* 🎨 タブ切り替えデザイン */
+.tab-container { display:flex; gap:10px; margin-bottom:16px; }
+.tab-btn { flex:1; padding:12px; text-align:center; font-weight:900; font-size:13px; border:3px solid var(--border); border-radius:16px; background:#fff; cursor:pointer; box-shadow:0 4px 0 var(--border); transition:all 0.1s;}
+.tab-btn.active { background:var(--money-primary); box-shadow:0 0 0 transparent; transform:translateY(4px); }
+.tab-content { display:none; }
+.tab-content.active { display:block; }
+
+/* 🔧 トグルスイッチ */
+.toggle-row{ display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:2px dashed var(--border2); }
+.toggle-row:last-child{border-bottom:none;}
+.toggle-info .toggle-name{font-size:15px;font-weight:900;}
+.toggle-info .toggle-desc{font-size:12px;font-weight:700;color:var(--text2);margin-top:4px;}
+.toggle-switch{position:relative;width:52px;height:30px;flex-shrink:0;}
+.toggle-switch input{opacity:0;width:0;height:0;}
+.toggle-track{ position:absolute;inset:0;background:var(--border2);border:3px solid var(--border);border-radius:15px;cursor:pointer;transition:background 0.2s; }
+.toggle-switch input:checked + .toggle-track{background:var(--money-primary);}
+.toggle-knob{ position:absolute;top:3px;left:3px;width:18px;height:18px;background:#fff;border:3px solid var(--border);border-radius:50%;transition:transform 0.2s;pointer-events:none; }
+.toggle-switch input:checked ~ .toggle-knob{transform:translateX(22px);}
+
+/* 🛑 モーダル */
+.modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:900;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px);}
+.modal-overlay.active { display:flex; }
+.modal-content { background:var(--bg);border:4px solid var(--border);border-radius:24px;width:100%;max-width:400px;max-height:85vh;overflow-y:auto;padding:20px;position:relative;box-shadow:0 8px 0 var(--border);}
+.modal-close { position:absolute;top:16px;right:16px;background:#fff;border:3px solid var(--border);border-radius:50%;width:36px;height:36px;font-weight:900;cursor:pointer;box-shadow:0 3px 0 var(--border);display:flex;align-items:center;justify-content:center;}
+
+/* 🚀 セットアップ画面 */
+.setup-screen{ position:fixed;inset:0;background:var(--money-primary);background-image: radial-gradient(rgba(255,255,255,0.3) 3px, transparent 3px);background-size: 24px 24px;z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px 24px; }
+.setup-screen.hidden{display:none;}
+.setup-logo{ font-family:var(--font-display);font-size:42px;font-weight:900;color:#fff;text-shadow: 3px 3px 0 var(--border), -3px -3px 0 var(--border), 3px -3px 0 var(--border), -3px 3px 0 var(--border), 0 6px 0 var(--border);margin-bottom:12px;letter-spacing:0.05em;text-align:center; }
+.setup-sub{font-size:16px;font-weight:900;color:#fff;margin-bottom:32px;text-align:center;text-shadow:1px 1px 0 var(--border), -1px -1px 0 var(--border), 1px -1px 0 var(--border), -1px 1px 0 var(--border);}
+.setup-card{ background:var(--bg2);border:3px solid var(--border);border-radius:24px;padding:24px;width:100%;max-width:400px;box-shadow: 0 8px 0 var(--border);max-height:85vh;overflow-y:auto; }
+.setup-card h2{ font-family:var(--font-display);font-size:18px;font-weight:900;color:var(--text);margin-bottom:20px;text-align:center; }
+
+/* 👝 おさいふリスト */
+.wallet-item { background:#fff;border:3px solid var(--border);border-radius:16px;padding:16px;margin-bottom:12px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all 0.1s;box-shadow:0 4px 0 var(--border); }
+.wallet-item:active { transform:translateY(4px);box-shadow:0 0 0 transparent; }
+.wallet-icon { font-size:28px; }
+.wallet-info { flex:1; }
+.wallet-name { font-size:16px;font-weight:900;color:var(--text); }
+.wallet-role { font-size:11px;font-weight:800;color:var(--text2);margin-top:4px; }
+
+/* カラーピッカー */
+.color-options{display:flex;gap:12px;flex-wrap:wrap;margin-top:6px;}
+.color-opt{ width:44px;height:44px;border-radius:12px;border:3px solid var(--border);cursor:pointer;transition:all 0.1s;box-shadow:0 3px 0 var(--border);margin-bottom:3px; }
+.color-opt:active{transform:translateY(3px);box-shadow:0 0 0 transparent;}
+.color-opt.sel{border-width:4px;border-color:#fff;box-shadow: 0 0 0 3px var(--border);}
+
+/* 🎰 拡張機能パーツ */
+.gacha-btn{ width:100%;height:120px;background: linear-gradient(135deg, #FF6B6B, #FFD93D);border:4px solid var(--border);border-radius:24px;font-family:var(--font-display);font-size:24px;font-weight:900;color:#fff;cursor:pointer;box-shadow:0 6px 0 var(--border);transition:all 0.1s;letter-spacing:0.1em;margin-bottom:16px;text-shadow: 2px 2px 0 var(--border); }
+.gacha-btn:active{transform:translateY(6px);box-shadow:0 0 0 transparent;}
+.gacha-result{ text-align:center;padding:20px;background:#fff;border:4px solid var(--border);border-radius:20px;margin-bottom:20px;display:none; }
+.gacha-result.show{display:block;}
+.gacha-result-icon{font-size:54px;margin-bottom:10px;}
+.gacha-result-name{font-family:var(--font-display);font-size:18px;font-weight:900;margin-bottom:4px;}
+.gacha-result-desc{font-size:12px;font-weight:900;color:var(--text2);}
+.invest-card{background:#fff;border:3px solid var(--border);border-radius:16px;padding:16px;margin-bottom:12px;}
+.r-n{color:var(--text2);} .r-r{color:#00BCD4;} .r-sr{color:#FFC107;} .r-ssr{color:#FF4081;}
+
+/* 通知 */
+.toast{ position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--text);border:3px solid #fff;color:#fff;padding:14px 24px;border-radius:30px;font-size:14px;font-weight:900;opacity:0;transition:all 0.3s;z-index:2000;white-space:nowrap;pointer-events:none;box-shadow:0 8px 0 rgba(0,0,0,0.2); }
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<div class="setup-screen" id="screen-welcome">
+  <div class="setup-logo">ツクペイ</div>
+  <div class="setup-sub">クラスやグループで使えるオリジナルPayを作ろう！</div>
+  <div class="setup-card">
+    <h2 style="margin-bottom: 24px; font-size: 18px;">どちらで開始しますか？</h2>
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <button class="btn-primary" onclick="goOwnerSetup()" style="margin: 0;">👑 管理者（新しく通貨を作る）</button>
+      <button class="btn-outline" onclick="goJoinSetup()" style="margin: 0;">📲 メンバー（既存グループに参加）</button>
+    </div>
+    <div style="margin-top:20px;text-align:center;">
+      <button class="btn-outline" style="border:none;background:none;box-shadow:none;color:var(--danger);font-size:12px;" onclick="resetAll()">[全データを初期化する]</button>
+    </div>
+  </div>
+</div>
+
+<div class="setup-screen hidden" id="screen-select-currency">
+  <div class="setup-logo" style="font-size:28px">マイウォレット</div>
+  <div class="setup-sub" id="my-name-display" style="margin-bottom:20px">---</div>
+  <div class="setup-card">
+    <h2>利用する通貨を選択</h2>
+    <div id="wallet-list"></div>
+    <div style="margin-top:24px;padding-top:24px;border-top:2px dashed var(--border2);">
+      <button class="btn-primary" onclick="goOwnerSetup()" style="font-size:14px;padding:12px;">👑 新規通貨の作成</button>
+      <button class="btn-outline" onclick="goJoinSetup()" style="font-size:14px;padding:12px;">🔑 別のグループに参加</button>
+    </div>
+  </div>
+</div>
+
+<div class="setup-screen hidden" id="screen-owner-setup">
+  <div class="setup-logo" style="font-size:28px">新規作成</div>
+  <div class="setup-sub" style="margin-bottom:20px">あなたがこの通貨の管理者になります</div>
+  <div class="setup-card">
+    <h2>システム設定</h2>
+    <div class="fgroup">
+      <label>あなたの名前（管理者名）</label>
+      <input type="text" id="s-owner-name" placeholder="例：先生、リーダー">
+    </div>
+    <div class="fgroup">
+      <label>通貨の名称</label>
+      <input type="text" id="s-money-name" placeholder="例：〇〇Pay">
+    </div>
+    <div class="fgroup">
+      <label>単位</label>
+      <input type="text" id="s-unit" placeholder="例：ポイント、G">
+    </div>
+    <div class="fgroup">
+      <label>アイコン（絵文字を1つ）</label>
+      <input type="text" id="s-icon" placeholder="🪙" maxlength="2" style="font-size:28px;text-align:center;">
+    </div>
+    <div class="fgroup">
+      <label>テーマカラー</label>
+      <div class="color-options" id="color-options">
+        <div class="color-opt sel" style="background:#4DD0E1" data-c="0" onclick="pickColor(this,0)"></div>
+        <div class="color-opt" style="background:#FFB74D" data-c="1" onclick="pickColor(this,1)"></div>
+        <div class="color-opt" style="background:#81C784" data-c="2" onclick="pickColor(this,2)"></div>
+        <div class="color-opt" style="background:#F06292" data-c="3" onclick="pickColor(this,3)"></div>
+        <div class="color-opt" style="background:#BA68C8" data-c="4" onclick="pickColor(this,4)"></div>
+        <div class="color-opt" style="background:#FFD54F" data-c="5" onclick="pickColor(this,5)"></div>
+      </div>
+    </div>
+    <div class="fgroup">
+      <label>初期残高（スタート時の金額）</label>
+      <input type="number" id="s-init-bal" placeholder="100" value="100">
+    </div>
+    <button class="btn-primary" onclick="createCurrency()" style="margin-top:10px">🚀 通貨を発行する！</button>
+    <button class="btn-outline" onclick="goBackToSelect()" style="margin-top:8px">← 戻る</button>
+  </div>
+</div>
+
+<div class="setup-screen hidden" id="screen-join-setup">
+  <div class="setup-logo" style="font-size:28px">参加する</div>
+  <div class="setup-sub" style="margin-bottom:20px">管理者から共有された招待コードを入力してください</div>
+  <div class="setup-card">
+    <h2>グループへの参加</h2>
+    <div class="fgroup">
+      <label>招待コード</label>
+      <div style="display:flex;gap:8px;margin-bottom:8px;">
+        <input type="text" id="j-code" placeholder="コードを入力" style="text-transform:uppercase;letter-spacing:0.15em;margin-bottom:0;">
+        <button class="btn-outline" style="width:auto;margin:0;padding:0 16px;" onclick="startJoinScanner()">📷 QR</button>
+      </div>
+    </div>
+    <div id="join-reader-container" style="display:none; margin-bottom:16px;">
+      <div id="join-reader" style="width:100%; border:3px solid var(--border);border-radius:16px;overflow:hidden;"></div>
+      <button class="btn-outline" style="margin-top:8px;" onclick="stopJoinScanner()">✖ カメラを閉じる</button>
+    </div>
+    <div class="fgroup">
+      <label>あなたの名前</label>
+      <input type="text" id="j-name" placeholder="名前を入力してください">
+    </div>
+    <button class="btn-primary" onclick="joinGroup()">✅ 参加する</button>
+    <div style="margin-top:16px;">
+      <button class="btn-outline" onclick="goBackToSelect()">← 戻る</button>
+    </div>
+  </div>
+</div>
+
+<div class="header" id="main-header" style="display:none;">
+  <div class="header-left">
+    <button class="btn-back" onclick="goBackToSelect()">🔙</button>
+    <div class="logo">
+      <div class="logo-icon" id="main-icon">🪙</div>
+      <span id="main-money-name">ツクペイ</span>
+    </div>
+  </div>
+  <span class="role-badge" id="role-badge">ROLE</span>
+</div>
+
+<div class="nav" id="nav-owner" style="display:none;">
+  <button class="nav-btn active" onclick="switchPage('owner','send', this)"><span class="nicon">💸</span>取引</button>
+  <button class="nav-btn" onclick="switchPage('owner','ranking', this)"><span class="nicon">🏆</span>ランク</button>
+  <button class="nav-btn" onclick="switchPage('owner','members', this)"><span class="nicon">👥</span>メンバー</button>
+  <button class="nav-btn" onclick="switchPage('owner','settings', this)"><span class="nicon">⚙️</span>設定</button>
+</div>
+
+<div class="nav" id="nav-user" style="display:none;">
+  <button class="nav-btn active" onclick="switchPage('user','home', this)"><span class="nicon">🏠</span>ホーム</button>
+  <button class="nav-btn" onclick="switchPage('user','ranking', this)"><span class="nicon">🏆</span>ランク</button>
+  <button class="nav-btn" onclick="switchPage('user','passbook', this)"><span class="nicon">📒</span>履歴</button>
+  <button class="nav-btn" onclick="switchPage('user','ext', this)"><span class="nicon">🎮</span>コンテンツ</button>
+</div>
+
+<div id="main-pages" style="display:none;">
+  
+  <div class="page" id="page-owner-send">
+    <div class="tab-container">
+      <div class="tab-btn active" onclick="switchTab('owner-tx', 'qr')" id="tab-btn-qr">📱 QRを利用</div>
+      <div class="tab-btn" onclick="switchTab('owner-tx', 'list')" id="tab-btn-list">📋 メンバー選択</div>
+    </div>
+
+    <div class="tab-content active" id="tab-content-qr">
+      <div class="card">
+        <div class="stitle">QRコードで取引を生成</div>
+        <div class="fgroup">
+          <label>金額</label>
+          <input type="number" id="qr-amount" placeholder="100">
+        </div>
+        <div class="fgroup">
+          <label>理由（任意）</label>
+          <input type="text" id="qr-reason" placeholder="活動報酬 など">
+        </div>
+        <div style="display:flex;gap:12px;">
+          <button class="btn-primary" style="flex:1;" onclick="generateTxQR('send')">💸 送金QR発行</button>
+          <button class="btn-primary" style="flex:1;background:#FFC107;" onclick="generateTxQR('pay')">⚠ 請求QR発行</button>
+        </div>
+        <div id="qr-result-area" style="display:none; text-align:center; margin-top:20px; padding-top:20px; border-top:2px dashed var(--border2);">
+          <div style="font-size:14px;font-weight:900;margin-bottom:12px;" id="qr-action-text">対象メンバーに読み取らせてください</div>
+          <div id="tx-qr-box" style="background:#fff;border:3px solid var(--border);border-radius:16px;padding:20px;display:inline-flex;"></div>
+          <div style="margin-top:16px;background:#f5f5f5;padding:12px;border-radius:12px;">
+            <div style="font-size:11px;font-weight:800;color:var(--text2);margin-bottom:4px;">カメラが使えない場合の「取引コード」</div>
+            <div id="tx-secret-code" style="font-family:var(--font-display);font-size:28px;font-weight:900;letter-spacing:0.2em;color:var(--danger);">1234</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="tab-content-list">
+      <div class="card">
+        <div class="fgroup">
+          <label>対象メンバー</label>
+          <div class="chips" id="owner-target-chips"></div>
+          <input type="hidden" id="owner-target-val">
+        </div>
+        <div class="fgroup">
+          <label>金額</label>
+          <input type="number" id="owner-amount" placeholder="0" min="1">
+        </div>
+        <div class="fgroup">
+          <label>理由（任意）</label>
+          <input type="text" id="owner-reason" placeholder="活動報酬 など">
+        </div>
+        <div style="display:flex;gap:12px;">
+          <button class="btn-primary" style="flex:1" onclick="ownerSend()">💸 送金する</button>
+          <button class="btn-primary" style="flex:1;background:#FFC107;" onclick="ownerConfiscate()">⚠ 引き落とす</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page" id="page-owner-ranking">
+    <div class="stitle">👑 所持金ランキング</div>
+    <div id="owner-ranking-list"></div>
+  </div>
+
+  <div class="page" id="page-owner-members">
+    <div class="card">
+      <div class="stitle">グループ招待コード</div>
+      <div style="text-align:center;padding:12px 0;">
+        <div id="invite-code-text" style="font-weight:900;font-size:24px;letter-spacing:0.2em;margin-bottom:10px;">CODE99</div>
+        <div id="invite-qr-box" style="background:#fff;border:3px solid var(--border);border-radius:16px;padding:20px;display:inline-flex;"></div>
+        <div style="font-size:12px;font-weight:800;color:var(--text2);margin-top:10px;">参加者にこのコードまたはQRを共有してください</div>
+      </div>
+    </div>
+    <div class="stitle">メンバー一覧</div>
+    <div id="member-list-owner"></div>
+  </div>
+
+  <div class="page" id="page-owner-settings">
+    <div class="stitle">拡張機能（システム設定）</div>
+    <div class="card">
+      <div class="toggle-row">
+        <div class="toggle-info">
+          <div class="toggle-name">📈 投資シミュレーション</div>
+          <div class="toggle-desc">資金を運用して資産を増やす機能</div>
+        </div>
+        <label class="toggle-switch"><input type="checkbox" id="ext-invest" onchange="saveExt()"><div class="toggle-track"></div><div class="toggle-knob"></div></label>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-info">
+          <div class="toggle-name">🌱 ログインボーナス（積立）</div>
+          <div class="toggle-desc">毎日1回、ログイン時に自動付与</div>
+        </div>
+        <label class="toggle-switch"><input type="checkbox" id="ext-nisa" onchange="saveExt()"><div class="toggle-track"></div><div class="toggle-knob"></div></label>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-info">
+          <div class="toggle-name">🎰 ガチャシステム</div>
+          <div class="toggle-desc">ポイントを消費して景品を引く機能</div>
+        </div>
+        <label class="toggle-switch"><input type="checkbox" id="ext-gacha" onchange="saveExt()"><div class="toggle-track"></div><div class="toggle-knob"></div></label>
+      </div>
+    </div>
+    <div id="gacha-edit-section" style="display:none;">
+      <div class="stitle">ガチャの景品を設定</div>
+      <div class="card">
+        <div id="gacha-items-list"></div>
+        <div style="display:flex;gap:8px;margin-top:12px;">
+          <input type="text" id="gacha-item-name" placeholder="景品名（例：クーポン）" style="flex:2">
+          <input type="text" id="gacha-item-icon" placeholder="🎟" style="flex:0 0 64px;text-align:center;font-size:24px;" maxlength="2">
+          <select id="gacha-item-rarity" style="flex:1">
+            <option value="n">ノーマル</option>
+            <option value="r">レア</option>
+            <option value="sr">スーパーレア</option>
+            <option value="ssr">超レア</option>
+          </select>
+        </div>
+        <input type="number" id="gacha-item-cost" placeholder="ガチャ1回あたりの消費額（例: 10）" style="margin-top:12px;" value="10">
+        <button class="btn-outline" style="margin-top:12px;" onclick="addGachaItem()">＋ 景品を追加</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="stitle">データ管理</div>
+      <button class="btn-outline" style="color:var(--danger);border-color:var(--danger);width:100%;" onclick="resetAll()">⚠ 全データを初期化</button>
+    </div>
+  </div>
+
+  <div class="page" id="page-user-home">
+    <div class="balance-card">
+      <div style="font-size:14px;font-weight:900;color:var(--text);margin-bottom:8px;" id="home-user-name">--- さんのウォレット</div>
+      <div style="font-family:var(--font-display);font-size:48px;font-weight:900;color:var(--text);text-shadow: 2px 2px 0 #fff, -2px -2px 0 #fff;" id="home-bal-val">0 <span style="font-size:20px" id="home-bal-unit">P</span></div>
+    </div>
+    <div class="card" style="text-align:center;">
+      <div style="font-size:14px;font-weight:900;margin-bottom:12px;">管理者からQRが提示された場合</div>
+      <button class="btn-primary" onclick="startScanner()">📷 QRを読み取る</button>
+      <div style="margin-top:16px;border-top:2px dashed var(--border2);padding-top:16px;">
+        <div style="font-size:12px;font-weight:800;color:var(--text2);margin-bottom:8px;">カメラが起動できない場合はこちら</div>
+        <div style="display:flex;gap:8px;">
+          <input type="number" id="secret-code-input" placeholder="取引コード (4桁)" style="text-align:center;letter-spacing:0.2em;">
+          <button class="btn-primary" style="width:auto;margin:0;padding:12px 20px;" onclick="submitSecretCode()">送信</button>
+        </div>
+      </div>
+    </div>
+    <div id="reader-container" style="display:none; margin-bottom:16px;">
+      <div id="reader" style="width:100%; border:3px solid var(--border);border-radius:16px;overflow:hidden;"></div>
+      <button class="btn-outline" style="margin-top:8px;" onclick="stopScanner()">✖ カメラを閉じる</button>
+    </div>
+    <div class="stitle">最近の取引履歴</div>
+    <div class="txn-list" id="home-recent"></div>
+  </div>
+  
+  <div class="page" id="page-user-ranking">
+    <div class="stitle">👑 所持金ランキング</div>
+    <div id="user-ranking-list"></div>
+  </div>
+
+  <div class="page" id="page-user-passbook">
+    <div class="stitle">📒 利用履歴</div>
+    <div class="txn-list" id="user-passbook-list"></div>
+  </div>
+
+  <div class="page" id="page-user-ext">
+    <div id="ext-invest-section" style="display:none;">
+      <div class="stitle">📈 投資シミュレーション</div>
+      <div class="card">
+        <div style="font-size:13px;font-weight:800;color:var(--text2);margin-bottom:16px;">資金を運用して資産を増やそう！（元本割れのリスクもあります）</div>
+        <div class="fgroup"><label>投資額</label><input type="number" id="invest-amount" placeholder="運用する金額"></div>
+        <div class="fgroup"><label>運用プラン</label>
+          <select id="invest-target">
+            <option value="stable">🏦 安定型（低リスク・低リターン）</option>
+            <option value="balance">📊 バランス型（中リスク・中リターン）</option>
+            <option value="growth">🚀 成長型（高リスク・高リターン）</option>
+          </select>
+        </div>
+        <button class="btn-primary" onclick="doInvest()">💹 投資を実行</button>
+      </div>
+      <div id="invest-holdings"></div>
+    </div>
+    <div id="ext-nisa-section" style="display:none;">
+      <div class="stitle">🌱 ログインボーナス</div>
+      <div class="card">
+        <div style="font-size:13px;font-weight:800;color:var(--text2);margin-bottom:16px;">毎日1回、ログイン時に自動で付与されます</div>
+        <div class="fgroup"><label>1日あたりの付与額</label><input type="number" id="nisa-amount" placeholder="金額を入力"></div>
+        <button class="btn-primary" onclick="startNisa()">🌱 積立をスタート</button>
+        <div id="nisa-status" style="margin-top:16px;font-size:14px;font-weight:800;color:var(--text2);"></div>
+      </div>
+    </div>
+    <div id="ext-gacha-section" style="display:none;">
+      <div class="stitle">🎰 ガチャシステム</div>
+      <div id="gacha-result" class="gacha-result"></div>
+      <button class="gacha-btn" onclick="doGacha()">🎰 GACHA !</button>
+      <div id="gacha-cost-info" style="text-align:center;font-size:14px;font-weight:900;color:var(--text2);margin-bottom:20px;"></div>
+      <div class="stitle">現在の景品リスト</div>
+      <div id="gacha-prize-list"></div>
+    </div>
+    <div id="no-ext-msg" style="display:none;">
+      <div class="empty"><div class="empty-icon">🔒</div><div class="empty-text">現在利用できる拡張機能はありません</div></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="modal-overlay" id="passbook-modal">
+  <div class="modal-content">
+    <button class="modal-close" onclick="closePassbookModal()">✖</button>
+    <div class="stitle" id="modal-pb-title" style="margin-bottom:20px;">--- の履歴</div>
+    <div class="txn-list" id="modal-pb-list"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// エラーキャッチ用
+window.onerror = function(msg) { console.error(msg); };
+
+// ═══════════════════════════════════════════
+// 全機能の合体スクリプト
+// ═══════════════════════════════════════════
+const COLORS = [{primary:'#4DD0E1'}, {primary:'#FFB74D'}, {primary:'#81C784'}, {primary:'#F06292'}, {primary:'#BA68C8'}, {primary:'#FFD54F'}];
+const INVEST_TYPES = { stable: {name:'安定型',icon:'🏦',minRate:0.05,maxRate:0.12}, balance: {name:'バランス型',icon:'📊',minRate:-0.15,maxRate:0.30}, growth: {name:'成長型',icon:'🚀',minRate:-0.50,maxRate:1.00} };
+const RARITY = { n: {label:'ノーマル',weight:60}, r: {label:'レア',weight:25}, sr: {label:'スーパーレア',weight:12}, ssr:{label:'超レア',weight:3} };
+
+const DB_GROUPS = 'emoney_groups_v10'; 
+const DB_ME     = 'emoney_me_v10';
+
+let ALL_GROUPS = {}; 
+let ME_PROFILE = { name: "", joined: [] }; 
+let G = null; 
+let selectedColorIdx = 0;
+
+let pendingQRTransaction = null; 
+
+function loadDB() {
+  try {
+    const g = localStorage.getItem(DB_GROUPS); 
+    if(g) ALL_GROUPS = JSON.parse(g);
+    const m = localStorage.getItem(DB_ME); 
+    if(m) {
+        let parsed = JSON.parse(m);
+        if(parsed && parsed.joined) ME_PROFILE = parsed;
+    }
+  } catch(e) { console.error("DB Load Error", e); }
+  
+  if(!ALL_GROUPS) ALL_GROUPS = {};
+  if(!ME_PROFILE) ME_PROFILE = { name: "", joined: [] };
+  if(!ME_PROFILE.joined) ME_PROFILE.joined = [];
+}
+
+function saveDB() {
+  try {
+      localStorage.setItem(DB_GROUPS, JSON.stringify(ALL_GROUPS));
+      localStorage.setItem(DB_ME, JSON.stringify(ME_PROFILE));
+  } catch(e) { console.warn("Save Error", e); }
+}
+
+function init() {
+  loadDB();
+  if (!ME_PROFILE.name || ME_PROFILE.joined.length === 0) {
+    showScreen('screen-welcome');
+  } else {
+    showSelectCurrency();
+  }
+}
+
+// ═══════════════════════════════════════════
+// 画面切り替えナビゲーション
+// ═══════════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.setup-screen').forEach(s => s.classList.add('hidden'));
+  document.getElementById('main-header').style.display = 'none';
+  document.getElementById('nav-owner').style.display = 'none';
+  document.getElementById('nav-user').style.display = 'none';
+  document.getElementById('main-pages').style.display = 'none';
+  
+  const target = document.getElementById(id);
+  if(target) {
+    target.classList.remove('hidden');
+    if(id === 'screen-welcome' || id === 'screen-select-currency') {
+      target.style.background = 'var(--money-primary)';
+    }
+  }
+}
+
+function showSelectCurrency() {
+  showScreen('screen-select-currency');
+  document.getElementById('my-name-display').textContent = `ようこそ、${ME_PROFILE.name}さん！`;
+  const listEl = document.getElementById('wallet-list');
+  if(ME_PROFILE.joined.length === 0) {
+    listEl.innerHTML = '<div style="text-align:center;color:var(--text2);font-weight:bold;padding:10px;">マイウォレットは空です</div>';
+    return;
+  }
+  listEl.innerHTML = ME_PROFILE.joined.map(j => {
+    const bg = COLORS[j.colorIdx]?.primary || '#FFCC00';
+    const roleText = j.role === 'owner' ? '👑 管理者' : '📱 メンバー';
+    return `
+      <div class="wallet-item" onclick="enterGroup('${j.code}')" style="border-color:${bg}">
+        <div class="wallet-icon" style="background:${bg}; border-radius:12px; border:3px solid var(--border); width:48px; height:48px; display:flex; align-items:center; justify-content:center; box-shadow:0 3px 0 var(--border);">
+          ${j.icon}
+        </div>
+        <div class="wallet-info">
+          <div class="wallet-name">${esc(j.moneyName)}</div>
+          <div class="wallet-role">${roleText}</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function goOwnerSetup() { showScreen('screen-owner-setup'); }
+function goJoinSetup()  { showScreen('screen-join-setup'); }
+function goBackToSelect() {
+  loadDB();
+  if (ME_PROFILE.joined.length > 0) showSelectCurrency();
+  else showScreen('screen-welcome');
+}
+
+function switchPage(role, pageName, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  
+  const targetPage = document.getElementById(`page-${role}-${pageName}`);
+  if(targetPage) targetPage.classList.add('active');
+  
+  if(el) {
+    el.classList.add('active');
+  } else {
+    const navContainer = document.getElementById(`nav-${role}`);
+    if(navContainer) {
+      navContainer.querySelectorAll('.nav-btn').forEach(btn => {
+        if(btn.getAttribute('onclick').includes(`'${pageName}'`)) btn.classList.add('active');
+      });
+    }
+  }
+
+  if (role === 'owner') {
+    if(pageName === 'send' || pageName === 'members') renderOwnerMembers();
+    if(pageName === 'ranking') renderRanking('owner-ranking-list');
+    if(pageName === 'settings') renderOwnerSettings();
+  } else {
+    if(pageName === 'home') renderUserHome();
+    if(pageName === 'ranking') renderRanking('user-ranking-list');
+    if(pageName === 'passbook') renderUserPassbook();
+    if(pageName === 'ext') renderUserExt();
+  }
+}
+
+function switchTab(group, tabId) {
+  document.getElementById('tab-btn-qr').classList.remove('active');
+  document.getElementById('tab-btn-list').classList.remove('active');
+  document.getElementById('tab-content-qr').classList.remove('active');
+  document.getElementById('tab-content-list').classList.remove('active');
+  document.getElementById('tab-btn-' + tabId).classList.add('active');
+  document.getElementById('tab-content-' + tabId).classList.add('active');
+}
+
+// ═══════════════════════════════════════════
+// 作成と参加の処理
+// ═══════════════════════════════════════════
+function createCurrency() {
+  const ownerName = document.getElementById('s-owner-name').value.trim();
+  const moneyName = document.getElementById('s-money-name').value.trim();
+  const unit      = document.getElementById('s-unit').value.trim();
+  const icon      = document.getElementById('s-icon').value.trim() || '🪙';
+  const initBal   = parseInt(document.getElementById('s-init-bal').value) || 100;
+  
+  if (!ownerName || !moneyName || !unit) { toast('⚠ 必須項目を入力してください'); return; }
+  const code = genCode();
+  ALL_GROUPS[code] = {
+    code, moneyName, unit, icon, colorIdx: selectedColorIdx, initBal,
+    members: [{ name: ownerName, balance: 0, isOwner: true }],
+    transactions: [],
+    extensions: { invest: false, nisa: false, gacha: false },
+    gachaItems: [], gachaCost: 10, investments: {}, nisaSettings: {}
+  };
+  if(!ME_PROFILE.name) ME_PROFILE.name = ownerName;
+  ME_PROFILE.joined.push({ code, role: 'owner', colorIdx: selectedColorIdx, moneyName, icon });
+  saveDB(); enterGroup(code);
+}
+
+function joinGroup() {
+  const code = document.getElementById('j-code').value.trim().toUpperCase();
+  const name = document.getElementById('j-name').value.trim();
+  if (!code || !name) { toast('⚠ コードと名前を入力してください'); return; }
+  if (!ALL_GROUPS[code]) { toast('❌ 該当するコードが存在しません'); return; }
+  
+  const targetGroup = ALL_GROUPS[code];
+  if (targetGroup.members.find(m => m.name === name)) { toast('⚠ その名前は既に登録されています'); return; }
+  targetGroup.members.push({ name, balance: targetGroup.initBal, isOwner: false });
+  targetGroup.transactions.push({ from:'システム', to: name, amount: targetGroup.initBal, reason:'初回ボーナス' });
+  
+  if(!ME_PROFILE.name) ME_PROFILE.name = name;
+  ME_PROFILE.joined.push({ code, role: 'user', colorIdx: targetGroup.colorIdx, moneyName: targetGroup.moneyName, icon: targetGroup.icon });
+  saveDB(); enterGroup(code);
+}
+
+// ── 参加画面用のQRスキャナー ──
+let joinScanner = null;
+function startJoinScanner() {
+  if (typeof Html5QrcodeScanner === 'undefined') { toast('⚠ カメラが起動できません'); return; }
+  document.getElementById('join-reader-container').style.display = 'block';
+  if(!joinScanner) {
+    joinScanner = new Html5QrcodeScanner("join-reader", { fps: 10, qrbox: {width: 250, height: 250} }, false);
+    joinScanner.render((text) => {
+      stopJoinScanner();
+      document.getElementById('j-code').value = text;
+      toast('✅ コードを読み取りました');
+    }, (e) => {});
+  }
+}
+function stopJoinScanner() {
+  document.getElementById('join-reader-container').style.display = 'none';
+  if(joinScanner) { joinScanner.clear(); joinScanner = null; }
+}
+
+
+function enterGroup(code) {
+  G = ALL_GROUPS[code];
+  const myRoleInfo = ME_PROFILE.joined.find(j => j.code === code);
+  if(!G || !myRoleInfo) return;
+
+  if(!G.extensions) G.extensions = { invest: false, nisa: false, gacha: false };
+  if(!G.gachaItems) G.gachaItems = [];
+  if(!G.investments) G.investments = {};
+  if(!G.nisaSettings) G.nisaSettings = {};
+
+  applyTheme(G.colorIdx);
+  showScreen('none'); 
+  document.getElementById('main-header').style.display = 'flex';
+  document.getElementById('main-pages').style.display = 'block';
+  document.getElementById('main-icon').textContent = G.icon;
+  document.getElementById('main-money-name').textContent = G.moneyName;
+  
+  if (myRoleInfo.role === 'owner') {
+    document.getElementById('role-badge').textContent = '管理者';
+    document.getElementById('role-badge').className = 'role-badge owner';
+    document.getElementById('nav-owner').style.display = 'flex';
+    switchPage('owner', 'send', null);
+  } else {
+    document.getElementById('role-badge').textContent = 'メンバー';
+    document.getElementById('role-badge').className = 'role-badge user';
+    document.getElementById('nav-user').style.display = 'flex';
+    if(G.extensions.nisa) tickNisa();
+    switchPage('user', 'home', null);
+  }
+}
+
+// ═══════════════════════════════════════════
+// アプリ内ロジック
+// ═══════════════════════════════════════════
+function renderOwnerMembers() {
+  const chips = document.getElementById('owner-target-chips');
+  const nonOwners = G.members.filter(m => !m.isOwner);
+  chips.innerHTML = nonOwners.map(m =>
+    `<div class="chip" onclick="document.querySelectorAll('#owner-target-chips .chip').forEach(c=>c.classList.remove('sel')); this.classList.add('sel'); document.getElementById('owner-target-val').value='${esc(m.name)}';">${m.name}<span style="font-size:11px;color:var(--text3);margin-left:6px;">${m.balance}</span></div>`
+  ).join('');
+  
+  document.getElementById('invite-code-text').textContent = G.code;
+  const qrBox = document.getElementById('invite-qr-box'); qrBox.innerHTML = '';
+  new QRCode(qrBox, { text: G.code, width: 140, height: 140, colorDark: '#333333', colorLight: '#FFFFFF' });
+  
+  document.getElementById('member-list-owner').innerHTML = nonOwners.map(m => `
+    <div class="rank-item">
+      <div style="flex:1;">
+        <div style="font-size:16px;font-weight:900;">${esc(m.name)}</div>
+        <div style="font-size:12px;font-weight:800;color:var(--text2);">${m.balance} ${G.unit}</div>
+      </div>
+      <button class="btn-outline" style="width:auto;margin:0;padding:8px 12px;font-size:12px;" onclick="openPassbookModal('${esc(m.name)}')">📒 履歴を見る</button>
+    </div>`).join('');
+}
+
+function ownerSend() {
+  const to = document.getElementById('owner-target-val').value;
+  const amount = parseInt(document.getElementById('owner-amount').value)||0;
+  const reason = document.getElementById('owner-reason').value.trim()||'活動報酬';
+  if (!to || amount <= 0) { toast('対象メンバーと金額を入力してください'); return; }
+  G.members.find(m => m.name === to).balance += amount;
+  G.transactions.push({ from: ME_PROFILE.name, to, amount, reason, ts: Date.now(), type:'send' });
+  saveDB(); toast(`✅ ${to} に ${amount} ${G.unit} 送金しました`);
+  document.getElementById('owner-amount').value = ''; document.getElementById('owner-reason').value = '';
+  renderOwnerMembers();
+}
+
+function ownerConfiscate() {
+  const to = document.getElementById('owner-target-val').value;
+  const amount = parseInt(document.getElementById('owner-amount').value)||0;
+  const reason = document.getElementById('owner-reason').value.trim()||'システム引き落とし';
+  if (!to || amount <= 0) { toast('対象メンバーと金額を入力してください'); return; }
+  const target = G.members.find(m => m.name === to);
+  target.balance = Math.max(0, target.balance - amount);
+  G.transactions.push({ from: to, to: ME_PROFILE.name, amount, reason, ts: Date.now(), type:'confiscate' });
+  saveDB(); toast(`⚠ ${to} から ${amount} ${G.unit} 引き落としました`);
+  document.getElementById('owner-amount').value = ''; document.getElementById('owner-reason').value = '';
+  renderOwnerMembers();
+}
+
+function renderUserHome() {
+  const m = G.members.find(x => x.name === ME_PROFILE.name); if (!m) return;
+  document.getElementById('home-user-name').textContent = m.name + ' さんのウォレット';
+  document.getElementById('home-bal-val').textContent = m.balance;
+  document.getElementById('home-bal-unit').textContent = G.unit;
+  const recent = G.transactions.filter(t => t.from === ME_PROFILE.name || t.to === ME_PROFILE.name).slice(-5).reverse();
+  renderTxnList('home-recent', recent, ME_PROFILE.name);
+}
+function renderUserPassbook() {
+  const allTx = G.transactions.filter(t => t.from === ME_PROFILE.name || t.to === ME_PROFILE.name).reverse();
+  renderTxnList('user-passbook-list', allTx, ME_PROFILE.name);
+}
+
+function renderTxnList(elementId, txns, viewerName) {
+  const el = document.getElementById(elementId);
+  if (!txns.length) { el.innerHTML = `<div style="text-align:center;padding:20px;font-weight:bold;color:var(--text3);">まだ履歴がありません</div>`; return; }
+  el.innerHTML = txns.map(t => {
+    const isRecv = t.to === viewerName;
+    const isCon = t.type === 'confiscate';
+    const icon = isCon ? '⚠' : (isRecv ? '📥' : '📤');
+    const sign = isRecv ? '+' : '−';
+    const color = isCon ? 'var(--warn)' : (isRecv ? '#4CAF50' : 'var(--danger)');
+    return `<div class="txn-item">
+      <div class="txn-icon" style="background:#fff">${icon}</div>
+      <div class="txn-body">
+        <div class="txn-reason">${esc(t.reason)}</div>
+        <div class="txn-meta">${isRecv?'from':'to'} ${esc(isRecv?t.from:t.to)}</div>
+      </div>
+      <div class="txn-amount" style="color:${color}">${sign}${t.amount}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderRanking(elementId) {
+  const sorted = [...G.members].sort((a,b) => b.balance - a.balance);
+  document.getElementById(elementId).innerHTML = sorted.map((m, i) => {
+    const medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1+'位');
+    const highlight = m.name === ME_PROFILE.name ? 'border-color:var(--money-primary);' : '';
+    return `<div class="rank-item" style="${highlight}">
+      <div style="font-size:24px;width:30px;text-align:center;">${medal}</div>
+      <div style="flex:1;font-size:18px;font-weight:900;">${esc(m.name)}${m.isOwner?'👑':''}</div>
+      <div style="font-size:20px;font-weight:900;">${m.balance} <span style="font-size:12px;">${G.unit}</span></div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════
+// ⚙ 拡張機能の設定＆稼働 (投資・積立・ガチャ)
+// ═══════════════════════════════════════════
+function renderOwnerSettings() {
+  document.getElementById('ext-invest').checked = !!G.extensions.invest;
+  document.getElementById('ext-nisa').checked   = !!G.extensions.nisa;
+  document.getElementById('ext-gacha').checked  = !!G.extensions.gacha;
+  document.getElementById('gacha-edit-section').style.display = G.extensions.gacha ? 'block' : 'none';
+  renderGachaItemsList();
+}
+function saveExt() {
+  G.extensions.invest = document.getElementById('ext-invest').checked;
+  G.extensions.nisa   = document.getElementById('ext-nisa').checked;
+  G.extensions.gacha  = document.getElementById('ext-gacha').checked;
+  saveDB(); renderOwnerSettings();
+}
+function addGachaItem() {
+  const name = document.getElementById('gacha-item-name').value.trim();
+  const icon = document.getElementById('gacha-item-icon').value.trim()||'🎁';
+  const rarity = document.getElementById('gacha-item-rarity').value;
+  const cost = parseInt(document.getElementById('gacha-item-cost').value)||10;
+  if (!name) { toast('景品名を入力してください'); return; }
+  G.gachaCost = cost; G.gachaItems.push({ name, icon, rarity, id: Date.now() });
+  saveDB(); toast('景品を追加しました');
+  document.getElementById('gacha-item-name').value = ''; renderGachaItemsList();
+}
+function renderGachaItemsList() {
+  const el = document.getElementById('gacha-items-list');
+  if (!G.gachaItems?.length) { el.innerHTML = '<div style="font-size:12px;color:#999;margin-bottom:10px;">景品が設定されていません</div>'; return; }
+  el.innerHTML = G.gachaItems.map((item,i) => `
+    <div style="display:flex;align-items:center;gap:10px;padding:8px;background:#f5f5f5;border-radius:8px;margin-bottom:6px;font-size:13px;font-weight:800;">
+      <span>${item.icon}</span><span style="flex:1;">${esc(item.name)}</span>
+      <span class="r-${item.rarity}">${RARITY[item.rarity].label}</span>
+      <button onclick="G.gachaItems.splice(${i},1); saveDB(); renderGachaItemsList();" style="border:none;background:none;color:var(--danger);cursor:pointer;font-weight:900;">✕</button>
+    </div>`).join('');
+}
+
+function renderUserExt() {
+  const exts = G.extensions;
+  const any = exts.invest || exts.nisa || exts.gacha;
+  document.getElementById('no-ext-msg').style.display = any ? 'none' : 'block';
+  document.getElementById('ext-invest-section').style.display = exts.invest ? 'block' : 'none';
+  document.getElementById('ext-nisa-section').style.display   = exts.nisa   ? 'block' : 'none';
+  document.getElementById('ext-gacha-section').style.display  = exts.gacha  ? 'block' : 'none';
+  
+  if (exts.gacha) {
+    document.getElementById('gacha-cost-info').textContent = `1回あたり ${G.gachaCost||10} ${G.unit} 消費します`;
+    document.getElementById('gacha-prize-list').innerHTML = G.gachaItems.map(item => `<div class="txn-item"><span style="font-size:24px;">${item.icon}</span><span style="flex:1;font-weight:900;">${esc(item.name)}</span><span class="r-${item.rarity}" style="font-weight:900;font-size:12px;">${RARITY[item.rarity].label}</span></div>`).join('');
+  }
+  if (exts.nisa) renderNisaStatus();
+  if (exts.invest) renderInvestHoldings();
+}
+
+function doInvest() {
+  const amount = parseInt(document.getElementById('invest-amount').value)||0;
+  const type   = document.getElementById('invest-target').value;
+  if (amount<=0) { toast('投資額を入力してください'); return; }
+  const m = G.members.find(x => x.name === ME_PROFILE.name);
+  if (!m || m.balance < amount) { toast('残高が不足しています'); return; }
+  
+  m.balance -= amount;
+  if (!G.investments[ME_PROFILE.name]) G.investments[ME_PROFILE.name] = [];
+  G.investments[ME_PROFILE.name].push({ type, amount, startedAt: Date.now() });
+  G.transactions.push({ from: ME_PROFILE.name, to:'投資口座', amount, reason:`${INVEST_TYPES[type].name}に投資`, ts: Date.now(), type:'send' });
+  saveDB(); toast('💹 投資を実行しました');
+  document.getElementById('invest-amount').value = ''; renderUserExt(); renderUserHome();
+}
+function renderInvestHoldings() {
+  const el = document.getElementById('invest-holdings'); el.innerHTML = '';
+  const holdings = G.investments[ME_PROFILE.name]||[];
+  if (!holdings.length) return;
+  el.innerHTML = '<div class="stitle">運用中の資産</div>' + holdings.map((h,i) => {
+    const days = Math.floor((Date.now() - h.startedAt) / 86400000);
+    const t = INVEST_TYPES[h.type];
+    return `<div class="invest-card">
+      <div style="display:flex;justify-content:space-between;font-weight:900;">
+        <div>${t.icon} ${t.name} (${days}日経過)</div><div>${h.amount} ${G.unit}</div>
+      </div>
+      <button class="btn-outline" style="margin-top:10px;margin-bottom:0;padding:8px;" onclick="redeemInvest(${i})">💰 利益を確定する</button>
+    </div>`;
+  }).join('');
+}
+function redeemInvest(i) {
+  const h = G.investments[ME_PROFILE.name][i]; if(!h) return;
+  const t = INVEST_TYPES[h.type];
+  const rate = t.minRate + Math.random()*(t.maxRate - t.minRate);
+  const payout = Math.max(0, Math.round(h.amount * (1 + rate)));
+  const m = G.members.find(x => x.name === ME_PROFILE.name);
+  m.balance += payout;
+  const diff = payout - h.amount;
+  G.transactions.push({ from:'投資口座', to: ME_PROFILE.name, amount: payout, reason:`運用益回収 (${diff>=0?'+':''}${diff})`, ts: Date.now(), type:'recv' });
+  G.investments[ME_PROFILE.name].splice(i,1); saveDB();
+  toast(`💰 ${payout} ${G.unit} を回収しました`);
+  renderUserExt(); renderUserHome();
+}
+
+function startNisa() {
+  const amount = parseInt(document.getElementById('nisa-amount').value)||0;
+  if(amount<=0) { toast('金額を入力してください'); return; }
+  G.nisaSettings[ME_PROFILE.name] = { amount, lastTick: Date.now(), total: 0 };
+  saveDB(); toast('🌱 ログインボーナスを設定しました'); renderNisaStatus();
+}
+function renderNisaStatus() {
+  const ns = G.nisaSettings[ME_PROFILE.name];
+  document.getElementById('nisa-status').innerHTML = ns ? `<div style="background:#fff;border:3px solid var(--border);border-radius:12px;padding:12px;">毎日 <b>${ns.amount} ${G.unit}</b> 自動付与されます<br>累計獲得額: ${ns.total}</div>` : '現在設定されていません';
+}
+function tickNisa() {
+  const ns = G.nisaSettings[ME_PROFILE.name]; if(!ns) return;
+  const days = Math.floor((Date.now() - ns.lastTick) / 86400000);
+  if (days >= 1) {
+    const add = ns.amount * days;
+    G.members.find(x => x.name === ME_PROFILE.name).balance += add;
+    ns.total += add; ns.lastTick = Date.now();
+    G.transactions.push({ from:'システム', to: ME_PROFILE.name, amount: add, reason:'ログインボーナス', ts: Date.now(), type:'recv' });
+    saveDB();
+  }
+}
+
+function doGacha() {
+  const items = G.gachaItems; if(!items.length) { toast('景品が設定されていません。管理者に確認してください'); return; }
+  const cost = G.gachaCost||10;
+  const m = G.members.find(x => x.name === ME_PROFILE.name);
+  if (!m || m.balance < cost) { toast('残高が不足しています'); return; }
+  
+  m.balance -= cost;
+  const totalWeight = items.reduce((a,item) => a+RARITY[item.rarity].weight, 0);
+  let rand = Math.random()*totalWeight; let result = items[0];
+  for (const item of items) {
+    rand -= RARITY[item.rarity].weight; if (rand <= 0) { result = item; break; }
+  }
+  G.transactions.push({ from: ME_PROFILE.name, to:'システム', amount: cost, reason:`ガチャ利用: ${result.icon} ${result.name}`, ts: Date.now(), type:'send' });
+  saveDB();
+  
+  const resEl = document.getElementById('gacha-result');
+  resEl.innerHTML = `<div class="gacha-result-icon">${result.icon}</div><div class="gacha-result-name r-${result.rarity}">${esc(result.name)}</div><div class="gacha-result-desc">${RARITY[result.rarity].label}</div>`;
+  resEl.classList.add('show'); renderUserHome();
+}
+
+// ═══════════════════════════════════════════
+// QRと暗号の擬似処理
+// ═══════════════════════════════════════════
+function generateTxQR(type) {
+  const amount = parseInt(document.getElementById('qr-amount').value)||0;
+  if(amount <= 0) { toast('金額を入力してください'); return; }
+  const reason = document.getElementById('qr-reason').value.trim() || (type === 'send' ? '送金' : '引き落とし');
+  
+  document.getElementById('qr-action-text').innerHTML = `【${type==='send'?'送金':'請求'}】コードを発行しました`;
+  const qrBox = document.getElementById('tx-qr-box'); qrBox.innerHTML = '';
+  
+  const simulatedQRData = JSON.stringify({ type, amount, reason, from: ME_PROFILE.name });
+  new QRCode(qrBox, { text: simulatedQRData, width: 140, height: 140, colorDark: "#333", colorLight: "#FFF" });
+  
+  const secretCode = Math.floor(1000 + Math.random() * 9000);
+  document.getElementById('tx-secret-code').textContent = secretCode;
+  
+  pendingQRTransaction = { type, amount, reason, secretCode: secretCode.toString(), ownerName: ME_PROFILE.name };
+  document.getElementById('qr-result-area').style.display = 'block';
+}
+
+function submitSecretCode() {
+  const input = document.getElementById('secret-code-input').value;
+  if (!input) { toast('コードを入力してください'); return; }
+  
+  if (pendingQRTransaction && pendingQRTransaction.secretCode === input) {
+    processQRTransaction(pendingQRTransaction);
+    pendingQRTransaction = null;
+    document.getElementById('secret-code-input').value = '';
+  } else {
+    toast('⚠ コードが誤っているか、期限切れです');
+  }
+}
+
+function processQRTransaction(data) {
+  const m = G.members.find(x => x.name === ME_PROFILE.name);
+  if (!m) return;
+  
+  if (data.type === 'send') {
+    m.balance += data.amount;
+    G.transactions.push({ from: data.ownerName, to: ME_PROFILE.name, amount: data.amount, reason: data.reason, ts: Date.now(), type:'recv' });
+    toast(`🎉 ${data.ownerName} から ${data.amount} ${G.unit} 受け取りました`);
+  } else {
+    if (m.balance < data.amount) { toast('⚠ 残高が不足しています'); return; }
+    m.balance -= data.amount;
+    G.transactions.push({ from: ME_PROFILE.name, to: data.ownerName, amount: data.amount, reason: data.reason, ts: Date.now(), type:'send' });
+    toast(`💸 ${data.amount} ${G.unit} 支払いました`);
+  }
+  saveDB(); renderUserHome();
+}
+
+let html5QrcodeScanner = null;
+function startScanner() {
+  if (typeof Html5QrcodeScanner === 'undefined') {
+      toast('⚠ ネットワーク未接続のためカメラが起動できません');
+      return;
+  }
+  document.getElementById('reader-container').style.display = 'block';
+  if(!html5QrcodeScanner) {
+    html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: {width: 250, height: 250} }, false);
+    html5QrcodeScanner.render((text) => {
+      stopScanner();
+      try {
+        const data = JSON.parse(text);
+        if(data.type && data.amount) processQRTransaction(data);
+      } catch(e) { toast('⚠ 対応していないQRコードです'); }
+    }, (e) => {});
+  }
+}
+function stopScanner() {
+  document.getElementById('reader-container').style.display = 'none';
+  if(html5QrcodeScanner) { html5QrcodeScanner.clear(); html5QrcodeScanner = null; }
+}
+
+// ═══════════════════════════════════════════
+// その他ツール・モーダル関係
+// ═══════════════════════════════════════════
+function openPassbookModal(name) {
+  document.getElementById('modal-pb-title').textContent = `${name} の履歴`;
+  const allTx = G.transactions.filter(t => t.from === name || t.to === name).reverse();
+  renderTxnList('modal-pb-list', allTx, name);
+  document.getElementById('passbook-modal').classList.add('active');
+}
+function closePassbookModal() { document.getElementById('passbook-modal').classList.remove('active'); }
+
+function genCode() { const c = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s = ''; for (let i = 0; i < 6; i++) s += c[Math.floor(Math.random()*c.length)]; return s; }
+function applyTheme(idx) {
+  const c = COLORS[idx] || COLORS[0]; document.documentElement.style.setProperty('--money-primary', c.primary);
+  document.querySelectorAll('.logo-icon').forEach(e => e.style.background = c.primary);
+}
+function pickColor(el, idx) { document.querySelectorAll('.color-opt').forEach(e => e.classList.remove('sel')); el.classList.add('sel'); selectedColorIdx = idx; applyTheme(idx); }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function toast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 2000); }
+
+function resetAll() { 
+    if (confirm('本当にすべてのシステムデータを初期化しますか？')) { 
+        localStorage.removeItem(DB_GROUPS); 
+        localStorage.removeItem(DB_ME); 
+        location.reload(); 
+    } 
+}
+
+init();
+</script>
+</body>
+</html>
