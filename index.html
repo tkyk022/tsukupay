@@ -7,6 +7,8 @@
 <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700;800;900&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://unpkg.com/html5-qrcode"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <style>
 /* 🎨 カラー設定 */
 :root {
@@ -354,12 +356,13 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--money-pr
     <div class="fgroup">
       <label>テーマカラー</label>
       <div class="color-options" id="color-options">
-        <div class="color-opt sel" style="background:#4DD0E1" data-c="0" onclick="pickColor(this,0)"></div>
+        <div class="color-opt sel" style="background:#FFCC00" data-c="0" onclick="pickColor(this,0)"></div>
         <div class="color-opt" style="background:#FFB74D" data-c="1" onclick="pickColor(this,1)"></div>
         <div class="color-opt" style="background:#81C784" data-c="2" onclick="pickColor(this,2)"></div>
         <div class="color-opt" style="background:#F06292" data-c="3" onclick="pickColor(this,3)"></div>
         <div class="color-opt" style="background:#BA68C8" data-c="4" onclick="pickColor(this,4)"></div>
-        <div class="color-opt" style="background:#FFD54F" data-c="5" onclick="pickColor(this,5)"></div>
+        <div class="color-opt" style="background:#4DD0E1" data-c="5" onclick="pickColor(this,5)"></div>
+        <div class="color-opt" style="background:#333333" data-c="6" onclick="pickColor(this,6)"></div>
       </div>
     </div>
     <div class="fgroup">
@@ -380,7 +383,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--money-pr
       <label>招待コード</label>
       <div style="display:flex;gap:8px;margin-bottom:8px;">
         <input type="text" id="j-code" placeholder="コードを入力" style="text-transform:uppercase;letter-spacing:0.15em;margin-bottom:0;">
-        <button class="btn-outline" style="width:auto;margin:0;padding:0 16px;" onclick="startJoinScanner()">📷 QR</button>
+        <button class="btn-outline" style="width:auto;margin:0;padding:0 16px;font-size:12px;" onclick="startJoinScanner()">📷 QRで読取</button>
       </div>
     </div>
     <div id="join-reader-container" style="display:none; margin-bottom:16px;">
@@ -561,6 +564,28 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--money-pr
         <button class="btn-primary" onclick="saveInvestSettings()">💾 投資設定を保存</button>
       </div>
     </div>
+    <div id="nisa-edit-section" style="display:none;">
+      <div class="stitle">🌱 定期預金の利率設定</div>
+      <div class="card">
+        <div style="font-size:13px;font-weight:800;color:var(--text2);margin-bottom:14px;">預け期間ごとの利率を設定します。メンバー全員に同じ利率が適用されます。</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div style="background:#f9f9f9;border-radius:14px;padding:12px;">
+            <div style="font-size:13px;font-weight:900;margin-bottom:8px;">📅 7日間預けた場合の利率 (%)</div>
+            <input type="number" id="nisa-rate-7" placeholder="5" value="5" min="0" max="100" step="1">
+          </div>
+          <div style="background:#f9f9f9;border-radius:14px;padding:12px;">
+            <div style="font-size:13px;font-weight:900;margin-bottom:8px;">📅 30日間預けた場合の利率 (%)</div>
+            <input type="number" id="nisa-rate-30" placeholder="15" value="15" min="0" max="100" step="1">
+          </div>
+          <div style="background:#f9f9f9;border-radius:14px;padding:12px;">
+            <div style="font-size:13px;font-weight:900;margin-bottom:8px;">📅 90日間預けた場合の利率 (%)</div>
+            <input type="number" id="nisa-rate-90" placeholder="40" value="40" min="0" max="200" step="1">
+          </div>
+        </div>
+        <div style="font-size:11px;font-weight:700;color:var(--text2);margin:10px 0;">7日未満の早期引き出し → 利息なし（元本のみ返却）</div>
+        <button class="btn-primary" onclick="saveNisaSettings()">💾 利率設定を保存</button>
+      </div>
+    </div>
     <div class="card">
       <div class="stitle">データ管理</div>
       <button class="btn-outline" style="color:var(--danger);border-color:var(--danger);width:100%;margin-bottom:10px;" onclick="deleteCurrentCurrency()">🗑️ この通貨を削除する</button>
@@ -575,7 +600,14 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--money-pr
     </div>
     <div class="card" style="text-align:center;">
       <div style="font-size:14px;font-weight:900;margin-bottom:12px;">オーナーからQRが提示された場合</div>
-      <button class="btn-primary" onclick="startScanner()">📷 QRを読み取る</button>
+      <div style="background:#f0f9ff;border-radius:16px;padding:14px;margin-bottom:10px;">
+        <div style="font-size:13px;font-weight:900;margin-bottom:8px;">💡 4桁コードで入力（推奨）</div>
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="manual-code-input" placeholder="4桁の数字" maxlength="4" style="flex:1;text-align:center;font-size:20px;font-weight:900;letter-spacing:0.2em;">
+          <button class="btn-primary" style="width:auto;margin:0;padding:12px 16px;" onclick="submitManualCode()">確定</button>
+        </div>
+      </div>
+      <button class="btn-outline" onclick="startScanner()" style="font-size:13px;">📷 QRカメラで読み取る（HTTPS必須）</button>
       <div style="margin-top:16px;border-top:2px dashed var(--border2);padding-top:16px;">
         <div style="font-size:12px;font-weight:800;color:var(--text2);margin-bottom:8px;">カメラが起動できない場合はこちら</div>
         <div style="display:flex;gap:8px;">
@@ -677,62 +709,121 @@ window.onerror = function(msg) { console.error(msg); };
 // 全機能の合体スクリプト
 // ═══════════════════════════════════════════
 const COLORS = [
-  {primary:'#FFCC00', bg:'#FFFBF0', dot:'#FFE8A1', glow:'rgba(255,204,0,0.35)'},   // ゴールド
-  {primary:'#4DD0E1', bg:'#F0FCFF', dot:'#B2EEF8', glow:'rgba(77,208,225,0.35)'},  // シアン
-  {primary:'#81C784', bg:'#F1FFF2', dot:'#B8EBB9', glow:'rgba(129,199,132,0.35)'}, // グリーン
-  {primary:'#F06292', bg:'#FFF0F5', dot:'#FBC8D8', glow:'rgba(240,98,146,0.35)'},  // ピンク
-  {primary:'#BA68C8', bg:'#F8F0FF', dot:'#E1C4EC', glow:'rgba(186,104,200,0.35)'}, // パープル
-  {primary:'#FFB74D', bg:'#FFFAF0', dot:'#FFE0B2', glow:'rgba(255,183,77,0.35)'},  // オレンジ
+  {primary:'#FFCC00', bg:'#FFFBF0', dot:'#FFE8A1', glow:'rgba(255,204,0,0.35)'},   // 0: ゴールド
+  {primary:'#FFB74D', bg:'#FFFAF0', dot:'#FFE0B2', glow:'rgba(255,183,77,0.35)'},  // 1: オレンジ
+  {primary:'#81C784', bg:'#F1FFF2', dot:'#B8EBB9', glow:'rgba(129,199,132,0.35)'}, // 2: グリーン
+  {primary:'#F06292', bg:'#FFF0F5', dot:'#FBC8D8', glow:'rgba(240,98,146,0.35)'},  // 3: ピンク
+  {primary:'#BA68C8', bg:'#F8F0FF', dot:'#E1C4EC', glow:'rgba(186,104,200,0.35)'}, // 4: パープル
+  {primary:'#4DD0E1', bg:'#F0FCFF', dot:'#B2EEF8', glow:'rgba(77,208,225,0.35)'},  // 5: シアン
+  {primary:'#333333', bg:'#F5F5F5', dot:'#DDDDDD', glow:'rgba(51,51,51,0.20)'},    // 6: ブラック
 ];
 const INVEST_TYPES = { stable: {name:'安定型',icon:'🏦',minRate:0.05,maxRate:0.12}, balance: {name:'バランス型',icon:'📊',minRate:-0.15,maxRate:0.30}, growth: {name:'成長型',icon:'🚀',minRate:-0.50,maxRate:1.00} };
 const RARITY = { n: {label:'ノーマル',weight:60}, r: {label:'レア',weight:25}, sr: {label:'スーパーレア',weight:12}, ssr:{label:'超レア',weight:3} };
 
-const DB_GROUPS = 'emoney_groups_v10';
-const DB_ME     = 'emoney_me_v10';
+const DB_ME = 'emoney_me_v10';
 
 let ALL_GROUPS = {};
 let ME_PROFILE = { name: "", joined: [] };
 let G = null;
 let selectedColorIdx = 0;
 let pendingQRTransaction = null;
+let _db = null; // Firebase database reference
 
-// ─── Persistent Storage ─────────────────────────────────────────────────────
-// Uses window.storage (Artifact persistent storage) with localStorage fallback.
-// ALL_GROUPS is saved as *shared* so any device can see the same group data.
-// ME_PROFILE is saved as *personal* (per-browser).
-// ─────────────────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════
+// Firebase設定
+// 無料のFirebase Realtime Databaseを使用します。
+// グループデータ（全メンバー共有）→ Firebase
+// 個人設定（どの通貨に参加しているか）→ localStorage（端末ごと）
+// ══════════════════════════════════════════════════════════════
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDemo-TsukupayApp-PleaseReplace",
+  authDomain: "tsukupay-demo.firebaseapp.com",
+  databaseURL: "https://tsukupay-demo-default-rtdb.firebaseio.com",
+  projectId: "tsukupay-demo",
+  storageBucket: "tsukupay-demo.appspot.com",
+  appId: "1:000000000000:web:00000000000000000000"
+};
+// ⚠ 上記はデモ用ダミー値です。
+// 本番利用には https://console.firebase.google.com で無料プロジェクトを作成し
+// 実際の設定値に置き換えてください（FIREBASE_SETUP_NEEDEDフラグを参照）。
+const FIREBASE_SETUP_NEEDED = FIREBASE_CONFIG.databaseURL.includes('demo');
 
-async function loadDB() {
+function initFirebase() {
+  if (FIREBASE_SETUP_NEEDED) return false;
   try {
-    if (window.storage) {
-      const g = await window.storage.get(DB_GROUPS, true);
-      if (g) ALL_GROUPS = JSON.parse(g.value);
-      const m = await window.storage.get(DB_ME);
-      if (m) { let p = JSON.parse(m.value); if (p?.joined) ME_PROFILE = p; }
-    } else {
-      // fallback: localStorage
-      const g = localStorage.getItem(DB_GROUPS); if(g) ALL_GROUPS = JSON.parse(g);
-      const m = localStorage.getItem(DB_ME);     if(m) { let p=JSON.parse(m); if(p?.joined) ME_PROFILE=p; }
-    }
-  } catch(e) { console.error("DB Load Error", e); }
-  if(!ALL_GROUPS)    ALL_GROUPS = {};
-  if(!ME_PROFILE)    ME_PROFILE = { name: "", joined: [] };
-  if(!ME_PROFILE.joined) ME_PROFILE.joined = [];
+    if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    _db = firebase.database();
+    return true;
+  } catch(e) { console.warn('Firebase init failed:', e); return false; }
+}
+
+// グループ1件をFirebaseから読み込む
+async function loadGroupFromFirebase(code) {
+  if (!_db) return null;
+  try {
+    const snap = await _db.ref('groups/' + code).once('value');
+    return snap.val();
+  } catch(e) { console.warn('Firebase read error:', e); return null; }
+}
+
+// グループ1件をFirebaseに保存
+async function saveGroupToFirebase(code, data) {
+  if (!_db) return false;
+  try {
+    await _db.ref('groups/' + code).set(data);
+    return true;
+  } catch(e) { console.warn('Firebase write error:', e); return false; }
+}
+
+// グループをFirebaseから削除
+async function deleteGroupFromFirebase(code) {
+  if (!_db) return;
+  try { await _db.ref('groups/' + code).remove(); } catch(e) {}
+}
+
+// ─── 個人設定（localStorage） ────────────────────────────────
+function loadMeLocal() {
+  try {
+    const m = localStorage.getItem(DB_ME);
+    if (m) { const p = JSON.parse(m); if (p?.joined) ME_PROFILE = p; }
+  } catch(e) {}
+  if (!ME_PROFILE.joined) ME_PROFILE.joined = [];
+}
+
+function saveMeLocal() {
+  try { localStorage.setItem(DB_ME, JSON.stringify(ME_PROFILE)); } catch(e) {}
+}
+
+// ─── 後方互換: loadDB / saveDB ───────────────────────────────
+// (コード内の既存呼び出し箇所はそのまま動く)
+async function loadDB() {
+  loadMeLocal();
+  // G（現在のグループ）はenterGroup()でFirebaseから読むので、ここでは不要
 }
 
 async function saveDB() {
-  try {
-    if (window.storage) {
-      await window.storage.set(DB_GROUPS, JSON.stringify(ALL_GROUPS), true);
-      await window.storage.set(DB_ME,     JSON.stringify(ME_PROFILE));
-    } else {
-      localStorage.setItem(DB_GROUPS, JSON.stringify(ALL_GROUPS));
-      localStorage.setItem(DB_ME,     JSON.stringify(ME_PROFILE));
+  saveMeLocal();
+  if (G && G.code) {
+    const saved = await saveGroupToFirebase(G.code, G);
+    if (!saved) {
+      // Firebase未設定 or オフライン → localStorageにフォールバック
+      try { localStorage.setItem('group_' + G.code, JSON.stringify(G)); } catch(e) {}
     }
-  } catch(e) { console.warn("Save Error", e); }
+    // ALL_GROUPSもキャッシュとして更新
+    ALL_GROUPS[G.code] = G;
+  }
+}
+
+// localStorageからグループを取得（フォールバック用）
+function loadGroupLocal(code) {
+  try {
+    const d = localStorage.getItem('group_' + code);
+    return d ? JSON.parse(d) : null;
+  } catch(e) { return null; }
 }
 
 async function init() {
+  initFirebase();
   await loadDB();
   if (!ME_PROFILE.name || ME_PROFILE.joined.length === 0) {
     showScreen('screen-welcome');
@@ -780,7 +871,7 @@ function showSelectCurrency() {
           <div class="wallet-name">${esc(j.moneyName)}</div>
           <div class="wallet-role">${roleText}</div>
         </div>
-        <button onclick="deleteCurrency('${j.code}')" style="background:none;border:2px solid var(--danger);border-radius:10px;color:var(--danger);font-size:11px;font-weight:900;padding:6px 10px;cursor:pointer;flex-shrink:0;" title="このウォレットを削除">✕</button>
+
       </div>`;
   }).join('');
 }
@@ -853,16 +944,25 @@ async function createCurrency() {
   };
   if(!ME_PROFILE.name) ME_PROFILE.name = ownerName;
   ME_PROFILE.joined.push({ code, role: 'owner', colorIdx: selectedColorIdx, moneyName, icon });
-  await saveDB(); enterGroup(code);
+  G = ALL_GROUPS[code];
+  await saveDB();
+  enterGroup(code);
 }
 
 async function joinGroup() {
   const code = document.getElementById('j-code').value.trim().toUpperCase();
   const name = document.getElementById('j-name').value.trim();
   if (!code || !name) { toast('⚠ コードと名前を入力してください'); return; }
-  if (!ALL_GROUPS[code]) { toast('❌ 該当するコードが存在しません'); return; }
 
-  const targetGroup = ALL_GROUPS[code];
+  toast('🔍 グループを検索中...');
+
+  // まずFirebaseから探す、次にlocal cache
+  let targetGroup = await loadGroupFromFirebase(code);
+  if (!targetGroup) targetGroup = loadGroupLocal(code);
+  if (!targetGroup) targetGroup = ALL_GROUPS[code];
+  if (!targetGroup) { toast('❌ 該当するコードが存在しません'); return; }
+
+  ALL_GROUPS[code] = targetGroup; // キャッシュに入れる
 
   // ① すでに自分のウォレットにこのグループが入っているかチェック
   if (ME_PROFILE.joined.find(j => j.code === code)) {
@@ -883,7 +983,10 @@ async function joinGroup() {
 
   if(!ME_PROFILE.name) ME_PROFILE.name = name;
   ME_PROFILE.joined.push({ code, role: 'user', memberName: name, colorIdx: targetGroup.colorIdx, moneyName: targetGroup.moneyName, icon: targetGroup.icon });
-  await saveDB(); enterGroup(code);
+  G = targetGroup; // saveDB()がGを参照するので先にセット
+  await saveDB();
+  G = null;        // enterGroup()で再ロードするのでリセット
+  enterGroup(code);
 }
 
 // ── 参加画面用のQRスキャナー ──
@@ -906,9 +1009,14 @@ function stopJoinScanner() {
 }
 
 
-function enterGroup(code) {
-  G = ALL_GROUPS[code];
-  // role is determined ONLY by the joined[] record for this code — not by name matching
+async function enterGroup(code) {
+  // Firebaseから最新を取得
+  let fresh = await loadGroupFromFirebase(code);
+  if (!fresh) fresh = loadGroupLocal(code);
+  if (!fresh) fresh = ALL_GROUPS[code];
+  if (fresh) { G = fresh; ALL_GROUPS[code] = fresh; }
+  else { G = ALL_GROUPS[code]; }
+
   const myRoleInfo = ME_PROFILE.joined.find(j => j.code === code);
   if(!G || !myRoleInfo) { toast('⚠ グループ情報が見つかりません'); showSelectCurrency(); return; }
 
@@ -1059,18 +1167,39 @@ function renderTxnList(elementId, txns, viewerName) {
 }
 
 function renderRanking(elementId) {
-  const sorted = [...G.members].sort((a,b) => b.balance - a.balance);
-  // タイトルを通貨単位に合わせて更新
+  // オーナーはランキング除外
+  const nonOwners = G.members.filter(m => !m.isOwner);
+  const ownerMember = G.members.find(m => m.isOwner);
+  const sorted = [...nonOwners].sort((a,b) => b.balance - a.balance);
+  const maxBal = sorted[0]?.balance || 1;
+
   const titleId = elementId === 'owner-ranking-list' ? 'owner-ranking-title' : 'user-ranking-title';
   const titleEl = document.getElementById(titleId);
-  if (titleEl) titleEl.textContent = `👑 所持${G.unit}ランキング`;
+  if (titleEl) {
+    titleEl.innerHTML = `👑 所持${G.unit}ランキング` +
+      (ownerMember ? `<span style="font-size:12px;font-weight:700;color:var(--text2);margin-left:8px;">オーナー：${esc(ownerMember.name)}</span>` : '');
+  }
+
+  if (sorted.length === 0) {
+    document.getElementById(elementId).innerHTML = '<div style="text-align:center;padding:20px;color:var(--text2);font-weight:800;">まだメンバーがいません</div>';
+    return;
+  }
+
   document.getElementById(elementId).innerHTML = sorted.map((m, i) => {
-    const medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1+'位');
-    const highlight = m.name === ME_PROFILE.name ? 'border-color:var(--money-primary);' : '';
+    const medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':'';
+    const rankNum = medal || `${i+1}`;
+    const highlight = m.name === ME_PROFILE.name ? `background:linear-gradient(135deg,rgba(255,204,0,0.15),rgba(255,204,0,0.05));border-color:var(--money-primary);` : '';
+    const barWidth = Math.round(m.balance / maxBal * 100);
     return `<div class="rank-item" style="${highlight}">
-      <div style="font-size:24px;width:30px;text-align:center;">${medal}</div>
-      <div style="flex:1;font-size:18px;font-weight:900;">${esc(m.name)}${m.isOwner?'👑':''}</div>
-      <div style="font-size:20px;font-weight:900;">${m.balance} <span style="font-size:12px;">${G.unit}</span></div>
+      <div style="font-size:${medal?'24':'16'}px;width:34px;text-align:center;font-weight:900;color:var(--text2);">${rankNum}</div>
+      <div style="flex:1;">
+        <div style="font-size:16px;font-weight:900;">${esc(m.name)}${m.name===ME_PROFILE.name?' 👈':''}</div>
+        <div style="height:4px;background:#eee;border-radius:2px;margin-top:6px;"><div style="height:4px;background:var(--money-primary);border-radius:2px;width:${barWidth}%;transition:width 0.5s;"></div></div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:18px;font-weight:900;">${m.balance}</div>
+        <div style="font-size:11px;font-weight:700;color:var(--text2);">${G.unit}</div>
+      </div>
     </div>`;
   }).join('');
 }
@@ -1084,8 +1213,29 @@ function renderOwnerSettings() {
   document.getElementById('ext-gacha').checked  = !!G.extensions.gacha;
   document.getElementById('gacha-edit-section').style.display  = G.extensions.gacha  ? 'block' : 'none';
   document.getElementById('invest-edit-section').style.display = G.extensions.invest ? 'block' : 'none';
+  document.getElementById('nisa-edit-section').style.display   = G.extensions.nisa   ? 'block' : 'none';
   renderGachaItemsList();
   renderInvestPlanRows();
+  renderNisaSettingsForm();
+}
+
+function renderNisaSettingsForm() {
+  const rates = G.nisaRates || { r7: 5, r30: 15, r90: 40 };
+  const el7  = document.getElementById('nisa-rate-7');
+  const el30 = document.getElementById('nisa-rate-30');
+  const el90 = document.getElementById('nisa-rate-90');
+  if (el7)  el7.value  = rates.r7;
+  if (el30) el30.value = rates.r30;
+  if (el90) el90.value = rates.r90;
+}
+
+async function saveNisaSettings() {
+  const r7  = parseFloat(document.getElementById('nisa-rate-7').value)  || 5;
+  const r30 = parseFloat(document.getElementById('nisa-rate-30').value) || 15;
+  const r90 = parseFloat(document.getElementById('nisa-rate-90').value) || 40;
+  G.nisaRates = { r7, r30, r90 };
+  await saveDB();
+  toast('💾 利率を保存しました！');
 }
 
 function renderInvestPlanRows() {
@@ -1268,10 +1418,11 @@ const DEPOSIT_RATES = [
   { days: 90, rate: 0.40,  label: '90日→+40%' },
 ];
 function getDepositRate(days) {
-  if (days >= 90) return 0.40;
-  if (days >= 30) return 0.15;
-  if (days >= 7)  return 0.05;
-  return 0; // early withdrawal: no interest
+  const rates = G?.nisaRates || { r7: 5, r30: 15, r90: 40 };
+  if (days >= 90) return rates.r90 / 100;
+  if (days >= 30) return rates.r30 / 100;
+  if (days >= 7)  return rates.r7  / 100;
+  return 0;
 }
 async function startDeposit() {
   const amount = parseInt(document.getElementById('nisa-amount').value)||0;
@@ -1357,26 +1508,36 @@ function generateTxQR(type) {
   const secretCode = Math.floor(1000 + Math.random() * 9000);
   pendingQRTransaction = { type, amount, reason, secretCode: secretCode.toString(), ownerName: ME_PROFILE.name };
 
-  document.getElementById('qr-action-text').innerHTML = `【${type==='send'?'💸 送金':'⚠ 請求'}】QRコードをメンバーに見せてください`;
+  document.getElementById('qr-action-text').innerHTML = `【${type==='send'?'💸 送金':'⚠ 請求'}】4桁コードをメンバーに伝えてください`;
   document.getElementById('tx-secret-code').textContent = secretCode;
   document.getElementById('qr-result-area').style.display = 'block';
 
-  // QR code generation
+  // QR: qrcodejsで試みる、失敗してもコードで代用できるので問題なし
   const qrBox = document.getElementById('tx-qr-box');
   qrBox.innerHTML = '';
   const qrData = JSON.stringify({ type, amount, reason, from: ME_PROFILE.name, code: secretCode });
-  try {
-    if (typeof QRCode !== 'undefined') {
-      new QRCode(qrBox, { text: qrData, width: 160, height: 160, colorDark: "#333333", colorLight: "#FFFFFF",
-        correctLevel: QRCode.CorrectLevel.M });
-    } else {
-      // QRCode lib not loaded - show text fallback
-      qrBox.innerHTML = '<div style="padding:10px;font-size:11px;color:#666;">QRライブラリ読み込み中...<br>下の番号コードを使ってください</div>';
+  setTimeout(() => { // DOMが描画されてから実行
+    try {
+      if (typeof QRCode !== 'undefined') {
+        new QRCode(qrBox, { text: qrData, width: 160, height: 160, colorDark: "#333333", colorLight: "#FFFFFF" });
+      } else {
+        qrBox.style.cssText = 'padding:12px;font-size:12px;color:#888;text-align:center;';
+        qrBox.textContent = 'QR非対応ブラウザ → 上の4桁コードを使用';
+      }
+    } catch(e) {
+      qrBox.style.cssText = 'padding:12px;font-size:12px;color:#888;text-align:center;';
+      qrBox.textContent = '上の4桁コードをメンバーに伝えてください';
     }
-  } catch(e) {
-    qrBox.innerHTML = '<div style="padding:10px;font-size:11px;color:#e00;">QR生成エラー。番号コードを使ってください。</div>';
-    console.error('QR error:', e);
-  }
+  }, 0);
+}
+
+function submitManualCode() {
+  const code = document.getElementById('manual-code-input')?.value?.trim();
+  if (!code) { toast('コードを入力してください'); return; }
+  if (!pendingQRTransaction) { toast('オーナーが取引を開始していません'); return; }
+  const input = document.getElementById('secret-code-input');
+  if (input) input.value = code;
+  submitSecretCode();
 }
 
 function submitSecretCode() {
@@ -1588,12 +1749,15 @@ window.removeGachaItem = removeGachaItem;
 window.resetAll = resetAll;
 window.saveExt = saveExt;
 window.saveInvestSettings = saveInvestSettings;
+window.saveNisaSettings = saveNisaSettings;
 window.startDeposit = startDeposit;
 window.startJoinScanner = startJoinScanner;
 window.startScanner = startScanner;
 window.stopJoinScanner = stopJoinScanner;
 window.stopScanner = stopScanner;
 window.submitSecretCode = submitSecretCode;
+window.submitManualCode = submitManualCode;
+window.renderNisaSettingsForm = renderNisaSettingsForm;
 window.switchPage = switchPage;
 window.switchTab = switchTab;
 
