@@ -296,9 +296,16 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--money-pr
   <div class="setup-sub">クラスやグループで使えるオリジナルPayを作ろう！</div>
   <div class="setup-card">
     <h2 style="margin-bottom: 24px; font-size: 18px;">どちらで開始しますか？</h2>
-    <div style="display:flex;flex-direction:column;gap:16px;">
-      <button class="btn-primary" onclick="goOwnerSetup()" style="margin: 0;">👑 オーナー（新しく通貨を作る）</button>
-      <button class="btn-outline" onclick="goJoinSetup()" style="margin: 0;">📲 メンバー（既存グループに参加）</button>
+    <!-- オーナーボタン: URLに?owner=1がある場合のみ表示 -->
+    <div id="owner-entry-btn" style="display:none;margin-bottom:8px;">
+      <button class="btn-primary" onclick="goOwnerSetup()" style="margin:0;background:#FFB74D;">👑 オーナーとして新規作成</button>
+    </div>
+    <div>
+      <button class="btn-primary" onclick="goJoinSetup()" style="margin:0;">📲 グループに参加する</button>
+    </div>
+    <!-- オーナーURLの案内（通常画面のみ表示） -->
+    <div id="owner-url-hint" style="margin-top:12px;padding:10px 14px;background:rgba(255,255,255,0.3);border-radius:12px;font-size:11px;font-weight:800;color:rgba(255,255,255,0.85);display:none;">
+      オーナーは専用URLからアクセスしてください
     </div>
     <div style="margin-top:20px;text-align:center;">
       <button class="btn-outline" style="border:none;background:none;box-shadow:none;color:var(--danger);font-size:12px;" onclick="resetAll()">[全データを初期化する]</button>
@@ -320,7 +327,9 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--money-pr
     <h2>利用する通貨を選択</h2>
     <div id="wallet-list"></div>
     <div style="margin-top:24px;padding-top:24px;border-top:2px dashed var(--border2);">
-      <button class="btn-primary" onclick="goOwnerSetup()" style="font-size:14px;padding:12px;">👑 新規通貨の作成</button>
+      <div id="wallet-owner-btn" style="display:none;">
+        <button class="btn-primary" onclick="goOwnerSetup()" style="font-size:14px;padding:12px;background:#FFB74D;">👑 新規通貨の作成</button>
+      </div>
       <button class="btn-outline" onclick="goJoinSetup()" style="font-size:14px;padding:12px;">🔑 別のグループに参加</button>
     </div>
   </div>
@@ -457,7 +466,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--money-pr
         </div>
         <div id="qr-result-area" style="display:none; text-align:center; margin-top:20px; padding-top:20px; border-top:2px dashed var(--border2);">
           <div style="font-size:14px;font-weight:900;margin-bottom:12px;" id="qr-action-text">対象メンバーに読み取らせてください</div>
-          <div id="tx-qr-box" style="background:#fff;border:3px solid var(--border);border-radius:16px;padding:20px;display:inline-flex;"></div>
+          <div id="tx-qr-box" style="background:#fff;border-radius:16px;padding:16px;display:flex;justify-content:center;align-items:center;min-height:192px;"></div>
           <div style="margin-top:16px;background:#f5f5f5;padding:12px;border-radius:12px;">
             <div style="font-size:11px;font-weight:800;color:var(--text2);margin-bottom:4px;">カメラが使えない場合の「取引コード」</div>
             <div id="tx-secret-code" style="font-family:var(--font-display);font-size:28px;font-weight:900;letter-spacing:0.2em;color:var(--danger);">1234</div>
@@ -512,9 +521,14 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--money-pr
     <div class="card">
       <div class="stitle">グループ招待コード</div>
       <div style="text-align:center;padding:12px 0;">
-        <div id="invite-code-text" style="font-weight:900;font-size:24px;letter-spacing:0.2em;margin-bottom:10px;">CODE99</div>
-        <div id="invite-qr-box" style="background:#fff;border:3px solid var(--border);border-radius:16px;padding:16px;display:inline-flex;min-width:160px;min-height:160px;align-items:center;justify-content:center;"></div>
-        <div style="font-size:12px;font-weight:800;color:var(--text2);margin-top:10px;">参加者にこのコードまたはQRを共有してください</div>
+        <div id="invite-code-text" style="font-weight:900;font-size:28px;letter-spacing:0.25em;margin-bottom:6px;color:var(--text);">------</div>
+        <div style="font-size:11px;font-weight:800;color:var(--text2);margin-bottom:12px;">↑ このコードを参加者に伝える</div>
+        <div id="invite-qr-box" style="background:#fff;border-radius:16px;padding:16px;display:flex;justify-content:center;align-items:center;min-height:192px;"></div>
+        <div style="font-size:11px;font-weight:800;color:var(--text2);margin-top:8px;">↑ QRを読み取ると参加画面が開く</div>
+        <div style="margin-top:12px;padding:10px;background:#f9f9f9;border-radius:12px;">
+          <div style="font-size:11px;font-weight:800;color:var(--text2);margin-bottom:6px;">参加用URL（コピーして共有）</div>
+          <div id="invite-url-text" style="font-size:11px;font-weight:700;color:#4CAF50;word-break:break-all;cursor:pointer;" onclick="copyInviteUrl()">---</div>
+        </div>
       </div>
     </div>
     <div class="stitle">メンバー一覧</div>
@@ -744,7 +758,7 @@ let pendingQRTransaction = null;
 // ★ここにデプロイしたGASのURLを貼り付けてください★
 // 例: https://script.google.com/macros/s/AKfyc.../exec
 // ══════════════════════════════════════════════════════════════
-const GAS_URL = 'https://https://script.google.com/macros/s/AKfycbyXAp6MqYzqwa5qeHAW9CBVU0sT_GGrONf0jB51dI2VnuIdOLMNvUs3rnSIiWC-KJU0/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbyXAp6MqYzqwa5qeHAW9CBVU0sT_GGrONf0jB51dI2VnuIdOLMNvUs3rnSIiWC-KJU0/exec';
 
 const GAS_READY = GAS_URL !== 'YOUR_GAS_URL_HERE';
 
@@ -754,9 +768,19 @@ const GAS_READY = GAS_URL !== 'YOUR_GAS_URL_HERE';
 async function gasCall(params) {
   if (!GAS_READY) return null;
   try {
-    const url = GAS_URL + '?' + new URLSearchParams(params).toString();
+    // 各パラメータを個別にencodeURIComponentでエンコード
+    // （URLSearchParamsはJSON文字列内の+や=を誤変換する場合がある）
+    const qs = Object.entries(params)
+      .map(([k, v]) => encodeURIComponent(k) + '=' + encodeURIComponent(String(v)))
+      .join('&');
+    const url = GAS_URL + '?' + qs;
     const res = await fetch(url, { redirect: 'follow' });
     const text = await res.text();
+    // GASがHTMLエラーページを返した場合の対策
+    if (text.trim().startsWith('<')) {
+      console.warn('GAS returned HTML (not JSON):', text.substring(0, 200));
+      return null;
+    }
     return JSON.parse(text);
   } catch(e) {
     console.warn('GAS call error:', e);
@@ -828,9 +852,30 @@ async function saveDB() {
 
 async function init() {
   await loadDB();
-  // GAS未設定の場合、TOP画面に警告バナーを表示
+
+  // ─── URLパラメータでオーナー/メンバーを判定 ───────────────────
+  const urlParams = new URLSearchParams(window.location.search);
+  const isOwnerUrl = urlParams.has('owner');   // ?owner または ?owner=1
+  const joinCode   = urlParams.get('join');    // ?join=XXXXXX で招待コードを自動入力
+
+  // オーナーボタンはオーナーURLのみ表示
+  const ownerBtn  = document.getElementById('owner-entry-btn');
+  const ownerHint = document.getElementById('owner-url-hint');
+  if (ownerBtn)  ownerBtn.style.display  = isOwnerUrl ? 'block' : 'none';
+  if (ownerHint) ownerHint.style.display = isOwnerUrl ? 'none'  : 'block';
+
+  // GAS未設定バナー
   const banner = document.getElementById('gas-setup-banner');
   if (banner) banner.style.display = GAS_READY ? 'none' : 'flex';
+
+  // ?join=コード で参加画面を直接開く（QRリンク用）
+  if (joinCode && !ME_PROFILE.joined.find(j => j.code === joinCode.toUpperCase())) {
+    await loadDB();
+    showScreen('screen-join-setup');
+    document.getElementById('j-code').value = joinCode.toUpperCase();
+    return;
+  }
+
   if (!ME_PROFILE.name || ME_PROFILE.joined.length === 0) {
     showScreen('screen-welcome');
   } else {
@@ -860,6 +905,10 @@ function showScreen(id) {
 function showSelectCurrency() {
   showScreen('screen-select-currency');
   document.getElementById('my-name-display').textContent = `ようこそ、${ME_PROFILE.name}さん！`;
+  // オーナーURLの場合のみ新規作成ボタンを表示
+  const isOwnerUrl = new URLSearchParams(window.location.search).has('owner');
+  const wb = document.getElementById('wallet-owner-btn');
+  if (wb) wb.style.display = isOwnerUrl ? 'block' : 'none';
   const listEl = document.getElementById('wallet-list');
   if(ME_PROFILE.joined.length === 0) {
     listEl.innerHTML = '<div style="text-align:center;color:var(--text2);font-weight:bold;padding:10px;">マイウォレットは空です</div>';
@@ -1087,9 +1136,15 @@ function renderOwnerMembers() {
   ).join('');
 
   document.getElementById('invite-code-text').textContent = G.code;
+  // 参加用URLを生成（ベースURLから?joinパラメータ付きURLを作成）
+  const baseUrl = window.location.origin + window.location.pathname;
+  const inviteUrl = baseUrl + '?join=' + G.code;
+  const inviteUrlEl = document.getElementById('invite-url-text');
+  if (inviteUrlEl) inviteUrlEl.textContent = inviteUrl;
+  // QRは参加URLを使う
   const qrBox = document.getElementById('invite-qr-box');
   qrBox.innerHTML = '';
-  generateQR(qrBox, G.code);
+  generateQR(qrBox, inviteUrl);
 
   document.getElementById('member-list-owner').innerHTML = nonOwners.length === 0
     ? '<div style="text-align:center;padding:20px;font-weight:bold;color:var(--text2);">まだメンバーがいません</div>'
@@ -1691,6 +1746,18 @@ function fmtDate(ts) {
   return `${d.getMonth()+1}/${d.getDate()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
 }
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function copyInviteUrl() {
+  const url = document.getElementById('invite-url-text')?.textContent;
+  if (!url || url === '---') return;
+  navigator.clipboard.writeText(url).then(() => toast('✅ 参加URLをコピーしました！')).catch(() => {
+    // フォールバック
+    const ta = document.createElement('textarea');
+    ta.value = url; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    toast('✅ 参加URLをコピーしました！');
+  });
+}
 function toast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 2000); }
 
 async function deleteCurrentCurrency() {
@@ -1794,6 +1861,7 @@ window.submitManualCode = submitManualCode;
 window.renderNisaSettingsForm = renderNisaSettingsForm;
 window.switchPage = switchPage;
 window.switchTab = switchTab;
+window.copyInviteUrl = copyInviteUrl;
 
 init();
 </script>
