@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>ツクペイ</title>
 <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700;800;900&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="https://unpkg.com/html5-qrcode"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <style>
 /* 🎨 カラー設定 */
 :root {
@@ -502,7 +502,9 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--money-pr
   </div>
 
   <div class="page" id="page-owner-ranking">
-    <div class="stitle" id="owner-ranking-title">👑 所持ランキング</div>
+    <div style="background:#fff;border-radius:20px;padding:14px 16px;margin-bottom:14px;box-shadow:0 3px 14px rgba(0,0,0,0.09);display:flex;align-items:center;flex-wrap:wrap;gap:6px;">
+      <span style="font-size:18px;font-weight:900;color:var(--text);" id="owner-ranking-title">👑 所持ランキング</span>
+    </div>
     <div id="owner-ranking-list"></div>
   </div>
 
@@ -631,7 +633,9 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--money-pr
   </div>
   
   <div class="page" id="page-user-ranking">
-    <div class="stitle" id="user-ranking-title">👑 所持ランキング</div>
+    <div style="background:#fff;border-radius:20px;padding:14px 16px;margin-bottom:14px;box-shadow:0 3px 14px rgba(0,0,0,0.09);display:flex;align-items:center;flex-wrap:wrap;gap:6px;">
+      <span style="font-size:18px;font-weight:900;color:var(--text);" id="user-ranking-title">👑 所持ランキング</span>
+    </div>
     <div id="user-ranking-list"></div>
   </div>
 
@@ -662,7 +666,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--money-pr
       <div class="card">
         <div style="font-size:13px;font-weight:800;color:var(--text2);margin-bottom:16px;">預け入れると残高から引かれ、期間に応じて利息がついて戻ってきます</div>
         <div class="fgroup"><label>預け入れ額</label><input type="number" id="nisa-amount" placeholder="例: 100">
-        <div style="margin-top:8px;font-size:12px;font-weight:800;color:var(--text2);">📅 期間と利率：7日→+5%　30日→+15%　90日→+40%</div></div>
+        <div id="nisa-rate-hint" style="margin-top:8px;font-size:12px;font-weight:800;color:var(--text2);">📅 期間と利率：7日→+5%　30日→+15%　90日→+40%</div></div>
         <button class="btn-primary" onclick="startDeposit()">🏦 預け入れる</button>
         <button class="btn-outline" onclick="redeemDeposit()" style="margin-top:8px;">💰 引き出す</button>
         <div style="font-size:11px;font-weight:700;color:var(--text2);margin-top:6px;padding:8px;background:#f9f9f9;border-radius:12px;">⚠ 7日未満は利息なし（元本のみ返却）</div>
@@ -740,37 +744,22 @@ let pendingQRTransaction = null;
 // ★ここにデプロイしたGASのURLを貼り付けてください★
 // 例: https://script.google.com/macros/s/AKfyc.../exec
 // ══════════════════════════════════════════════════════════════
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbyXAp6MqYzqwa5qeHAW9CBVU0sT_GGrONf0jB51dI2VnuIdOLMNvUs3rnSIiWC-KJU0/exec';
+const GAS_URL = 'https://https://script.google.com/macros/s/AKfycbyXAp6MqYzqwa5qeHAW9CBVU0sT_GGrONf0jB51dI2VnuIdOLMNvUs3rnSIiWC-KJU0/exec';
 
 const GAS_READY = GAS_URL !== 'YOUR_GAS_URL_HERE';
 
 // ─── GAS API呼び出し ──────────────────────────────────────────
+// GASはContent-Type:application/jsonのPOSTを受け付けない。
+// 全操作をGETパラメータで送る。dataはJSON→encodeURIComponent。
 async function gasCall(params) {
   if (!GAS_READY) return null;
   try {
-    // GASはno-corsで呼ぶためPOSTはblob返答になる
-    // → GETパラメータ方式で呼び出す
     const url = GAS_URL + '?' + new URLSearchParams(params).toString();
-    const res = await fetch(url);
-    const json = await res.json();
-    return json;
+    const res = await fetch(url, { redirect: 'follow' });
+    const text = await res.text();
+    return JSON.parse(text);
   } catch(e) {
     console.warn('GAS call error:', e);
-    return null;
-  }
-}
-
-async function gasPost(body) {
-  if (!GAS_READY) return null;
-  try {
-    const res = await fetch(GAS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    return await res.json();
-  } catch(e) {
-    console.warn('GAS post error:', e);
     return null;
   }
 }
@@ -782,15 +771,15 @@ async function loadGroupFromGAS(code) {
   return null;
 }
 
-// グループをGASに保存
+// グループをGASに保存（dataをGETパラメータで送る）
 async function saveGroupToGAS(code, data) {
-  const r = await gasPost({ action: 'save', code, data });
+  const r = await gasCall({ action: 'save', code, data: JSON.stringify(data) });
   return r?.ok === true;
 }
 
 // グループをGASから削除
 async function deleteGroupFromGAS(code) {
-  await gasPost({ action: 'delete', code });
+  await gasCall({ action: 'delete', code });
 }
 
 // localStorageからグループを取得（オフライン時フォールバック）
@@ -822,13 +811,18 @@ async function loadDB() {
 async function saveDB() {
   saveMeLocal();
   if (G && G.code) {
-    // GASに保存（失敗時はlocalStorageにフォールバック）
-    const saved = GAS_READY ? await saveGroupToGAS(G.code, G) : false;
-    if (!saved) {
-      try { localStorage.setItem('group_' + G.code, JSON.stringify(G)); } catch(e) {}
-      if (!GAS_READY) console.info('GAS未設定: localStorageに保存しました（端末内のみ有効）');
-    }
+    // 常にlocalStorageにもキャッシュとして保存（高速アクセス用）
+    try { localStorage.setItem('group_' + G.code, JSON.stringify(G)); } catch(e) {}
     ALL_GROUPS[G.code] = G;
+    // GASにも保存
+    if (GAS_READY) {
+      const saved = await saveGroupToGAS(G.code, G);
+      if (!saved) {
+        console.warn('GAS保存失敗: localStorageのみに保存');
+      } else {
+        console.log('GAS保存成功:', G.code);
+      }
+    }
   }
 }
 
@@ -966,10 +960,16 @@ async function joinGroup() {
   const name = document.getElementById('j-name').value.trim();
   if (!code || !name) { toast('⚠ コードと名前を入力してください'); return; }
 
-  toast('🔍 グループを検索中...');
-
-  // まずFirebaseから探す、次にlocal cache
-  let targetGroup = await loadGroupFromGAS(code);
+  // ローディング表示
+  const joinBtn = document.querySelector('#screen-join-setup .btn-primary');
+  if (joinBtn) { joinBtn.textContent = '🔍 検索中...'; joinBtn.disabled = true; }
+  
+  let targetGroup = null;
+  try {
+    targetGroup = await loadGroupFromGAS(code);
+  } finally {
+    if (joinBtn) { joinBtn.textContent = '✅ 参加する'; joinBtn.disabled = false; }
+  }
   if (!targetGroup) targetGroup = loadGroupLocal(code);
   if (!targetGroup) targetGroup = ALL_GROUPS[code];
   if (!targetGroup) { toast('❌ 該当するコードが存在しません'); return; }
@@ -1089,21 +1089,7 @@ function renderOwnerMembers() {
   document.getElementById('invite-code-text').textContent = G.code;
   const qrBox = document.getElementById('invite-qr-box');
   qrBox.innerHTML = '';
-  try {
-    if (typeof QRCode !== 'undefined') {
-      new QRCode(qrBox, { text: G.code, width: 160, height: 160, colorDark: '#333333', colorLight: '#FFFFFF', correctLevel: QRCode.CorrectLevel.M });
-    } else {
-      qrBox.innerHTML = '<div style="padding:10px;text-align:center;font-size:12px;color:#666;">QR読み込み中...<br>上のコードを伝えてください</div>';
-      // retry after a bit
-      setTimeout(() => {
-        qrBox.innerHTML = '';
-        if (typeof QRCode !== 'undefined') new QRCode(qrBox, { text: G.code, width: 160, height: 160, colorDark: '#333333', colorLight: '#FFFFFF' });
-      }, 2000);
-    }
-  } catch(e) {
-    qrBox.innerHTML = `<div style="padding:10px;text-align:center;font-size:13px;font-weight:900;">${G.code}</div>`;
-    console.error('QR error:', e);
-  }
+  generateQR(qrBox, G.code);
 
   document.getElementById('member-list-owner').innerHTML = nonOwners.length === 0
     ? '<div style="text-align:center;padding:20px;font-weight:bold;color:var(--text2);">まだメンバーがいません</div>'
@@ -1352,7 +1338,12 @@ function renderUserExt() {
     document.getElementById('gacha-cost-info').textContent = `1回あたり ${G.gachaCost||10} ${G.unit} 消費します`;
     document.getElementById('gacha-prize-list').innerHTML = G.gachaItems.map(item => `<div class="txn-item"><span style="font-size:24px;">${item.icon}</span><span style="flex:1;font-weight:900;">${esc(item.name)}</span><span class="r-${item.rarity}" style="font-weight:900;font-size:12px;">${RARITY[item.rarity].label}</span></div>`).join('');
   }
-  if (exts.nisa) renderNisaStatus();
+  if (exts.nisa) {
+    renderNisaStatus();
+    const rates = G.nisaRates || { r7: 5, r30: 15, r90: 40 };
+    const hint = document.getElementById('nisa-rate-hint');
+    if (hint) hint.textContent = `📅 期間と利率：7日→+${rates.r7}%　30日→+${rates.r30}%　90日→+${rates.r90}%`;
+  }
   if (exts.invest) renderInvestHoldings();
 }
 
@@ -1468,6 +1459,7 @@ async function redeemDeposit() {
 function renderNisaStatus() {
   const ns = G.nisaSettings?.[ME_PROFILE.name];
   const el = document.getElementById('nisa-status');
+  const rates = G.nisaRates || { r7: 5, r30: 15, r90: 40 };
   if (!ns?.active) {
     el.innerHTML = '<div style="font-weight:800;color:var(--text2);">現在、預け入れ中のお金はありません</div>';
     return;
@@ -1475,12 +1467,14 @@ function renderNisaStatus() {
   const days = Math.floor((Date.now() - ns.startedAt) / 86400000);
   const rate = getDepositRate(days);
   const currentInterest = Math.round(ns.amount * rate);
-  el.innerHTML = `<div style="background:#fff;border:3px solid var(--border);border-radius:12px;padding:14px;">
-    <div style="font-weight:900;margin-bottom:6px;">🏦 定期預金 運用中</div>
-    <div style="font-size:13px;font-weight:800;">預け入れ額: <b>${ns.amount} ${G.unit}</b></div>
-    <div style="font-size:13px;font-weight:800;">預け期間: <b>${days}日</b></div>
-    <div style="font-size:13px;font-weight:800;color:${rate>0?'green':'var(--text2)'};">現在の利息: +${currentInterest} ${G.unit}（年利換算 ${(rate*100).toFixed(0)}%）</div>
-    <div style="font-size:11px;font-weight:700;color:var(--text2);margin-top:6px;">7日→+5%　30日→+15%　90日→+40%　達成で利息アップ！</div>
+  el.innerHTML = `<div style="background:#fff;border-radius:16px;padding:16px;box-shadow:0 2px 10px rgba(0,0,0,0.07);">
+    <div style="font-weight:900;margin-bottom:8px;font-size:15px;">🏦 定期預金 運用中</div>
+    <div style="font-size:14px;font-weight:800;margin-bottom:4px;">預け入れ額: <b>${ns.amount} ${G.unit}</b></div>
+    <div style="font-size:14px;font-weight:800;margin-bottom:4px;">預け期間: <b>${days}日</b></div>
+    <div style="font-size:14px;font-weight:800;color:${rate>0?'#4CAF50':'var(--text2)'};margin-bottom:8px;">現在の利息: +${currentInterest} ${G.unit}（${(rate*100).toFixed(0)}%）</div>
+    <div style="background:#f9f9f9;border-radius:10px;padding:10px;font-size:12px;font-weight:800;color:var(--text2);line-height:2;">
+      📅 7日 → +${rates.r7}%　　30日 → +${rates.r30}%　　90日 → +${rates.r90}%
+    </div>
   </div>`;
 }
 function tickNisa() {
@@ -1525,22 +1519,42 @@ function generateTxQR(type) {
   document.getElementById('qr-result-area').style.display = 'block';
 
   // QR: qrcodejsで試みる、失敗してもコードで代用できるので問題なし
+  // QRコード生成
   const qrBox = document.getElementById('tx-qr-box');
   qrBox.innerHTML = '';
+  qrBox.style.cssText = '';
   const qrData = JSON.stringify({ type, amount, reason, from: ME_PROFILE.name, code: secretCode });
-  setTimeout(() => { // DOMが描画されてから実行
+  generateQR(qrBox, qrData);
+}
+
+function generateQR(container, text) {
+  container.innerHTML = '';
+  container.style.cssText = '';
+  // 試行1: QRCode ライブラリ
+  if (typeof QRCode !== 'undefined') {
     try {
-      if (typeof QRCode !== 'undefined') {
-        new QRCode(qrBox, { text: qrData, width: 160, height: 160, colorDark: "#333333", colorLight: "#FFFFFF" });
-      } else {
-        qrBox.style.cssText = 'padding:12px;font-size:12px;color:#888;text-align:center;';
-        qrBox.textContent = 'QR非対応ブラウザ → 上の4桁コードを使用';
-      }
-    } catch(e) {
-      qrBox.style.cssText = 'padding:12px;font-size:12px;color:#888;text-align:center;';
-      qrBox.textContent = '上の4桁コードをメンバーに伝えてください';
+      new QRCode(container, {
+        text: text,
+        width: 160, height: 160,
+        colorDark: '#1a1a1a', colorLight: '#FFFFFF',
+        correctLevel: QRCode.CorrectLevel ? QRCode.CorrectLevel.M : 1
+      });
+      return;
+    } catch(e) { console.warn('QRCode lib error:', e); }
+  }
+  // 試行2: QRライブラリ未ロード → 少し待ってリトライ
+  container.innerHTML = '<div style="padding:16px;text-align:center;font-size:12px;color:#999;">QR生成中...</div>';
+  setTimeout(() => {
+    if (typeof QRCode !== 'undefined') {
+      container.innerHTML = '';
+      try {
+        new QRCode(container, { text, width:160, height:160, colorDark:'#1a1a1a', colorLight:'#FFFFFF' });
+        return;
+      } catch(e) {}
     }
-  }, 0);
+    // 最終フォールバック: テキスト表示
+    container.innerHTML = '<div style="padding:16px;text-align:center;font-size:11px;color:#999;line-height:1.8;">QRの表示に失敗しました<br>上の4桁コードを<br>メンバーに伝えてください</div>';
+  }, 1500);
 }
 
 function submitManualCode() {
@@ -1728,12 +1742,15 @@ async function resetAll() {
   const ok3 = await showConfirm({ icon:'💥', title:'全データを初期化', message:'すべての通貨・メンバー・履歴が完全に消えます。\nこの操作は絶対に元に戻せません。', okLabel:'全部消す', okColor:'#333', okGlow:'rgba(0,0,0,0.3)' });
   if (ok3) {
     try {
-      if (window.storage) {
-        await window.storage.delete(DB_GROUPS, true);
-        await window.storage.delete(DB_ME);
+      // localStorageのツクペイ関連データを全消去
+      const keysToRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('group_') || key === DB_ME || key.startsWith('emoney_'))) {
+          keysToRemove.push(key);
+        }
       }
-      localStorage.removeItem(DB_GROUPS);
-      localStorage.removeItem(DB_ME);
+      keysToRemove.forEach(k => localStorage.removeItem(k));
     } catch(e) {}
     location.reload();
   }
