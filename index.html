@@ -7,8 +7,6 @@
 <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700;800;900&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://unpkg.com/html5-qrcode"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <style>
 /* 🎨 カラー設定 */
 :root {
@@ -286,7 +284,15 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--money-pr
 <body>
 
 <div class="setup-screen" id="screen-welcome">
-  <div class="setup-logo">ツクペイ</div>
+  <div id="gas-setup-banner" style="display:none;background:#FF6B6B;color:#fff;border-radius:16px;padding:14px 16px;margin-bottom:16px;font-size:13px;font-weight:800;line-height:1.6;align-items:flex-start;gap:10px;text-align:left;">
+    <span style="font-size:20px;flex-shrink:0;">⚠</span>
+    <div>
+      <div style="font-size:14px;font-weight:900;margin-bottom:4px;">GAS URLが未設定です</div>
+      HTMLファイルの <code style="background:rgba(0,0,0,0.2);padding:2px 6px;border-radius:6px;">GAS_URL</code> に<br>デプロイしたURLを貼り付けてください。<br>
+      <span style="opacity:0.85;">（設定するまでデータは端末内のみ保存）</span>
+    </div>
+  </div>
+<div class="setup-logo">ツクペイ</div>
   <div class="setup-sub">クラスやグループで使えるオリジナルPayを作ろう！</div>
   <div class="setup-card">
     <h2 style="margin-bottom: 24px; font-size: 18px;">どちらで開始しますか？</h2>
@@ -727,58 +733,72 @@ let ME_PROFILE = { name: "", joined: [] };
 let G = null;
 let selectedColorIdx = 0;
 let pendingQRTransaction = null;
-let _db = null; // Firebase database reference
 
 // ══════════════════════════════════════════════════════════════
-// Firebase設定
-// 無料のFirebase Realtime Databaseを使用します。
-// グループデータ（全メンバー共有）→ Firebase
-// 個人設定（どの通貨に参加しているか）→ localStorage（端末ごと）
+// GAS (Google Apps Script) バックエンド設定
+//
+// ★ここにデプロイしたGASのURLを貼り付けてください★
+// 例: https://script.google.com/macros/s/AKfyc.../exec
 // ══════════════════════════════════════════════════════════════
-const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyDemo-TsukupayApp-PleaseReplace",
-  authDomain: "tsukupay-demo.firebaseapp.com",
-  databaseURL: "https://tsukupay-demo-default-rtdb.firebaseio.com",
-  projectId: "tsukupay-demo",
-  storageBucket: "tsukupay-demo.appspot.com",
-  appId: "1:000000000000:web:00000000000000000000"
-};
-// ⚠ 上記はデモ用ダミー値です。
-// 本番利用には https://console.firebase.google.com で無料プロジェクトを作成し
-// 実際の設定値に置き換えてください（FIREBASE_SETUP_NEEDEDフラグを参照）。
-const FIREBASE_SETUP_NEEDED = FIREBASE_CONFIG.databaseURL.includes('demo');
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbyXAp6MqYzqwa5qeHAW9CBVU0sT_GGrONf0jB51dI2VnuIdOLMNvUs3rnSIiWC-KJU0/exec';
 
-function initFirebase() {
-  if (FIREBASE_SETUP_NEEDED) return false;
+const GAS_READY = GAS_URL !== 'YOUR_GAS_URL_HERE';
+
+// ─── GAS API呼び出し ──────────────────────────────────────────
+async function gasCall(params) {
+  if (!GAS_READY) return null;
   try {
-    if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
-    _db = firebase.database();
-    return true;
-  } catch(e) { console.warn('Firebase init failed:', e); return false; }
+    // GASはno-corsで呼ぶためPOSTはblob返答になる
+    // → GETパラメータ方式で呼び出す
+    const url = GAS_URL + '?' + new URLSearchParams(params).toString();
+    const res = await fetch(url);
+    const json = await res.json();
+    return json;
+  } catch(e) {
+    console.warn('GAS call error:', e);
+    return null;
+  }
 }
 
-// グループ1件をFirebaseから読み込む
-async function loadGroupFromFirebase(code) {
-  if (!_db) return null;
+async function gasPost(body) {
+  if (!GAS_READY) return null;
   try {
-    const snap = await _db.ref('groups/' + code).once('value');
-    return snap.val();
-  } catch(e) { console.warn('Firebase read error:', e); return null; }
+    const res = await fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return await res.json();
+  } catch(e) {
+    console.warn('GAS post error:', e);
+    return null;
+  }
 }
 
-// グループ1件をFirebaseに保存
-async function saveGroupToFirebase(code, data) {
-  if (!_db) return false;
-  try {
-    await _db.ref('groups/' + code).set(data);
-    return true;
-  } catch(e) { console.warn('Firebase write error:', e); return false; }
+// グループをGASから読み込む
+async function loadGroupFromGAS(code) {
+  const r = await gasCall({ action: 'load', code });
+  if (r?.ok) return r.data;
+  return null;
 }
 
-// グループをFirebaseから削除
-async function deleteGroupFromFirebase(code) {
-  if (!_db) return;
-  try { await _db.ref('groups/' + code).remove(); } catch(e) {}
+// グループをGASに保存
+async function saveGroupToGAS(code, data) {
+  const r = await gasPost({ action: 'save', code, data });
+  return r?.ok === true;
+}
+
+// グループをGASから削除
+async function deleteGroupFromGAS(code) {
+  await gasPost({ action: 'delete', code });
+}
+
+// localStorageからグループを取得（オフライン時フォールバック）
+function loadGroupLocal(code) {
+  try {
+    const d = localStorage.getItem('group_' + code);
+    return d ? JSON.parse(d) : null;
+  } catch(e) { return null; }
 }
 
 // ─── 個人設定（localStorage） ────────────────────────────────
@@ -794,37 +814,29 @@ function saveMeLocal() {
   try { localStorage.setItem(DB_ME, JSON.stringify(ME_PROFILE)); } catch(e) {}
 }
 
-// ─── 後方互換: loadDB / saveDB ───────────────────────────────
-// (コード内の既存呼び出し箇所はそのまま動く)
+// ─── loadDB / saveDB ──────────────────────────────────────────
 async function loadDB() {
   loadMeLocal();
-  // G（現在のグループ）はenterGroup()でFirebaseから読むので、ここでは不要
 }
 
 async function saveDB() {
   saveMeLocal();
   if (G && G.code) {
-    const saved = await saveGroupToFirebase(G.code, G);
+    // GASに保存（失敗時はlocalStorageにフォールバック）
+    const saved = GAS_READY ? await saveGroupToGAS(G.code, G) : false;
     if (!saved) {
-      // Firebase未設定 or オフライン → localStorageにフォールバック
       try { localStorage.setItem('group_' + G.code, JSON.stringify(G)); } catch(e) {}
+      if (!GAS_READY) console.info('GAS未設定: localStorageに保存しました（端末内のみ有効）');
     }
-    // ALL_GROUPSもキャッシュとして更新
     ALL_GROUPS[G.code] = G;
   }
 }
 
-// localStorageからグループを取得（フォールバック用）
-function loadGroupLocal(code) {
-  try {
-    const d = localStorage.getItem('group_' + code);
-    return d ? JSON.parse(d) : null;
-  } catch(e) { return null; }
-}
-
 async function init() {
-  initFirebase();
   await loadDB();
+  // GAS未設定の場合、TOP画面に警告バナーを表示
+  const banner = document.getElementById('gas-setup-banner');
+  if (banner) banner.style.display = GAS_READY ? 'none' : 'flex';
   if (!ME_PROFILE.name || ME_PROFILE.joined.length === 0) {
     showScreen('screen-welcome');
   } else {
@@ -957,7 +969,7 @@ async function joinGroup() {
   toast('🔍 グループを検索中...');
 
   // まずFirebaseから探す、次にlocal cache
-  let targetGroup = await loadGroupFromFirebase(code);
+  let targetGroup = await loadGroupFromGAS(code);
   if (!targetGroup) targetGroup = loadGroupLocal(code);
   if (!targetGroup) targetGroup = ALL_GROUPS[code];
   if (!targetGroup) { toast('❌ 該当するコードが存在しません'); return; }
@@ -1011,7 +1023,7 @@ function stopJoinScanner() {
 
 async function enterGroup(code) {
   // Firebaseから最新を取得
-  let fresh = await loadGroupFromFirebase(code);
+  let fresh = await loadGroupFromGAS(code);
   if (!fresh) fresh = loadGroupLocal(code);
   if (!fresh) fresh = ALL_GROUPS[code];
   if (fresh) { G = fresh; ALL_GROUPS[code] = fresh; }
@@ -1681,10 +1693,15 @@ async function deleteCurrentCurrency() {
     okLabel: '削除する',
   });
   if (!ok) return;
-  if (isOwner) delete ALL_GROUPS[G.code];
+  if (isOwner) {
+    await deleteGroupFromGAS(G.code);
+    try { localStorage.removeItem('group_' + G.code); } catch(e) {}
+    delete ALL_GROUPS[G.code];
+  }
   ME_PROFILE.joined = ME_PROFILE.joined.filter(j => j.code !== G.code);
+  const oldCode = G.code;
   G = null;
-  await saveDB();
+  saveMeLocal();
   toast('✅ 削除しました');
   goBackToSelect();
 }
